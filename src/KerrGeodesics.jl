@@ -1,6 +1,6 @@
 module KerrGeodesics
 
-using LoopVectorization, Enzyme
+using LoopVectorization, Enzyme, FastDifferentiation
 include("./structs.jl")
 include("./DiffOperators.jl")
 

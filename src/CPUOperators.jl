@@ -91,4 +91,3 @@ function calculate_differentials_backward!(innerprod_buffer::AbstractArray{T},
     
 
 end
-
