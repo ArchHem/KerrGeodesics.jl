@@ -1,11 +1,11 @@
-@kernel function calculate_differential(
+@kernel unsafe_indices=true function calculate_differential!(
     dstate::AbstractArray{T},
     @Const(state::AbstractArray{T}),
     @Const(metric::KerrMetric{T}), batch::BatchInfo{V}) where {T, V}
 
     g_index = @index(Global, Linear)
-    chunk, lane = divrem(g_index - 1, V)
-    lane += Int32(1)
+    chunk, lane = divrem(g_index - 1, V) .+ Int32(1)
+    
 
     a = metric.a
     M = metric.M

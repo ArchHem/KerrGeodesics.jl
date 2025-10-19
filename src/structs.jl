@@ -8,3 +8,11 @@ end
 struct BatchInfo{V}
 
 end
+
+struct TimeStepScaler{T}
+    min::T
+    flat::T
+    outer_scaling::T
+    inner_scaling::T
+    threshold::T
+end
