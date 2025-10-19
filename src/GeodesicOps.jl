@@ -1,6 +1,6 @@
 @inline function calculate_differential(
     x0::T, x1::T, x2::T, x3::T, v0::T, v1::T, v2::T, v3::T,
-    metric::KerrMetric{T}) where {T, V}
+    metric::KerrMetric{T}) where {T}
 
     a = metric.a
     M = metric.M
@@ -331,4 +331,42 @@
     
     return dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3
 
+end
+
+@inline function calculate_differential(state::NTuple{8, T}, metric::KerrMetric{T}) where T
+    x0, x1, x2, x3, v0, v1, v2, v3 = state
+    dstate = calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
+    return dstate
+end
+
+@inline function yield_r2(x0::T, x1::T, x2::T, x3::T, metric::KerrMetric{T}) where T
+
+    a = metric.a
+    M = metric.M
+    @fastmath begin
+        x1_2 = x1*x1
+        x2_2 = x2*x2
+        x3_2 = x3*x3
+        R2 = x1_2 + x2_2 + x3_2
+        a2 = a*a
+        sub1 = R2 - a2
+        r2 = T(0.5) * (sub1 + sqrt(sub1^2 + T(4) * a2 * x3_2))
+    end
+
+    return r2
+
+end
+
+@inline function RK4step(x0::T, x1::T, x2::T, x3::T, v0::T, v1::T, v2::T, v3::T, metric::KerrMetric{T}, dt::T) where T
+
+    #ould use a tuple based abstrction here, but I am paranoid about allocations or spilling
+    state = (x0, x1, x2, x3, v0, v1, v2, v3)
+    @fastmath begin 
+        dstate_1 = calculate_differential(state, metric)
+        dstate_2 = calculate_differential(state .+ dt * T(0.5) * dstate_1, metric)
+        dstate_3 = calculate_differential(state .+ dt * T(0.5) * dstate_2, metric)
+        dstate_4 = calculate_differential(state .+ dt * dstate_3, metric)
+        newstate = state .+ T(dt/6) * (dstate_1 + 2*dstate_2 + 2*dstate_3 + dstate_4)
+    end
+    return newstate
 end
