@@ -370,3 +370,70 @@ end
     end
     return newstate
 end
+
+@inline function yield_inverse_metric(x0::T, x1::T, x2::T, x3::T) where T
+    x1_2 = x1 * x1
+    x2_2 = x2 * x2
+    x3_2 = x3 * x3
+
+    R2 = x1_2 + x2_2 + x3_2
+    a2 = a*a
+    sub1 = R2 - a2
+    r2 = T(0.5) * (sub1 + sqrt(sub1^2 + T(4) * a2 * x3_2))
+    r4 = r2 * r2
+    r = sqrt(r2)
+    f = -2 * M * r2 * r / (r4 + a2 * x3_2)
+    common_subdiv = r2 + a2
+    l0 = -T(1)
+    l1 = (r * x1 + a * x2) / common_subdiv
+    l2 = (r * x2 - a * x1) / common_subdiv
+    l3 = x3 / r
+
+    fl0 = f * l0
+    fl1 = f * l1
+    fl2 = f * l2
+
+    u00 =  -1 + fl0 * l0
+    u10 = fl0 * l1
+    u20 =  fl0 * l2
+    u30 =  fl0 * l3
+    u11 =  1 + fl1 * l1
+    u21 = l2 * fl1
+    u31 =  l3 * fl1
+    u22 = 1 + fl2 * l2
+    u32 = fl2 * l3
+    u33 =  1 + f * l3 * l3
+
+    return u00, u10, u20, u30, u11, u21, u31, u22, u32, u33
+end
+
+#normalizes the four-velocity to be null, such that v0 is left unmodified.
+#to do this, we use the fact the the v0 component only contributes to certain elements.
+@inline function normalize_fourveloc(metric_tuple::NTuple{8, T}, v0::T, v1::T, v2::T, v3::T) where T
+    u00, u10, u20, u30, u11, u21, u31, u22, u32, u33 = metric_tuple
+
+    @fastmath begin
+        zero_contrib = u00 * v0 * v0
+        mixed_contrib = v0 * 2 * (u10  * v1 + u20 * v2 + u30 * v3)
+        non_zero_contrib = v1 * v1 * u11 + v2 * v2 * u22 + v3 * v3 * u33 + 2 * (
+            v1 * v2 * u21 + v1 * v3 * u31 + u32 * v3 * v2
+        )
+
+        #we chose a scaling quantity "a" such that: zero_contrib constributes zero (duh) 
+        #mixed_contrib contributes as a * , non_zero_contrib contributes as a^2.
+        #thus, zero_contrib + a * mixed_contrib 
+
+        #for reasons of convinience, we choose a to be the positive root.
+        #This is technicaly not stable, but should be fine for fp32 maybe even 16
+        scaler = (-mixed_contrib + sqrt(mixed_contrib^2 - 4 * zero_contrib * non_zero_contrib)) / (2 * zero_contrib)
+        w1 = scaler * v1
+        w2 = scaler * v2
+        w3 = scaler * v3
+
+    end
+
+    return v0, w1, w2, w3
+    
+
+
+end

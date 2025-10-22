@@ -11,7 +11,7 @@ end
 
 #This compues specialized, heuretical timesteps in the Kerr spacetime.
 #It uses the following heuretic:
-#If r2 > threshold, dt = mind(flat + r2 * outer_scaling, max)
+#If r2 > threshold, dt = min(flat + r2 * outer_scaling, max)
 #If r2 < threshold, dt = min(max, flat + inner_scaling/r2)
 #To presevre continuity at the threshold, we enforce:
 # threshold * outer_scaling = inner_scaling / threshold
@@ -33,6 +33,6 @@ function TimeStepScaler(max::T, flat::T, outer_scaling::T, threshold::T, redshif
 end
 
 @inline function get_dt(r2::T, s::TimeStepScaler{T}) where T
-    dt = ifelse(r2 > s.threshold, min(s.max, s.outer_scaling * r2), min(s.max, s.inner_scaling / r2))
+    dt = ifelse(r2 > s.threshold, min(s.max, s.flat + s.outer_scaling * r2), min(s.max, s.flat + s.inner_scaling / r2))
     return dt
 end
