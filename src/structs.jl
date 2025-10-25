@@ -24,10 +24,10 @@ struct TimeStepScaler{T}
     threshold::T
     redshift_stop::T
     r_stop::T
-    maxtimesteps::Int32
+    maxtimesteps::Int
 end
 
-function TimeStepScaler(max::T, flat::T, outer_scaling::T, threshold::T, redshift_stop::T, r_stop::T, maxtimesteps::Int32) where T
+function TimeStepScaler(max::T, flat::T, outer_scaling::T, threshold::T, redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
     inner_scaling = threshold * threshold * outer_scaling
     return TimeStepScaler{T}(max, flat, outer_scaling, inner_scaling, threshold, redshift_stop, r_stop, maxtimesteps)
 end
@@ -35,4 +35,12 @@ end
 @inline function get_dt(r2::T, s::TimeStepScaler{T}) where T
     dt = ifelse(r2 > s.threshold, min(s.max, s.flat + s.outer_scaling * r2), min(s.max, s.flat + s.inner_scaling / r2))
     return dt
+end
+
+struct SubStruct{V, H}
+
+end
+
+function SubStruct(V, H)
+    return SubStruct{V, H}()
 end
