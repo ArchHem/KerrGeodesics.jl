@@ -4,11 +4,6 @@ struct KerrMetric{T}
     a::T
 end
 
-#used for codegen for diffops
-struct BatchInfo{V}
-
-end
-
 #This compues specialized, heuretical timesteps in the Kerr spacetime.
 #It uses the following heuretic:
 #If r2 > threshold, dt = min(flat + r2 * outer_scaling, max)

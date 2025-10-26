@@ -214,12 +214,5 @@ function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArr
 
 end
 
-@inline function pixel_coord_to_array_index(i, j, st::SubStruct{V, H}) where {V, H}
-
-end
-
-function institate_camera_rays!(device_array, )
-
-end
 
 

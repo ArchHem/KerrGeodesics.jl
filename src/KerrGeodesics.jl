@@ -5,6 +5,7 @@ include("./AlgebraicUtils.jl")
 include("./structs.jl")
 include("./GeodesicOps.jl")
 include("./CameraUtils.jl")
+include("./CameraKernels.jl")
 include("./KADiffOperators.jl")
 
 export KerrMetric, TimeStepScaler, calculate_differential!, PinHoleCamera

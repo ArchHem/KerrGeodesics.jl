@@ -1,5 +1,5 @@
-@kernel unsafe_indices=true function ensemble_ODE_RK4!(
-    state::AbstractArray{T},
+@kernel unsafe_indices=true function ensemble_ODE_RK4!(output::AbstractArray{T},
+    @Const(state::AbstractArray{T}),
     @Const(metric::KerrMetric{T}), 
     @Const(batch::SubStruct{V, H}), 
     @Const(dtcontrol::TimeStepScaler{T})) where {T, V, H}
@@ -23,14 +23,7 @@
 
     end
     
-    state[lane, 1, chunk] = x0
-    state[lane, 2, chunk] = x1
-    state[lane, 3, chunk] = x2
-    state[lane, 4, chunk] = x3
-    state[lane, 5, chunk] = v0
-    state[lane, 6, chunk] = v1
-    state[lane, 7, chunk] = v2
-    state[lane, 8, chunk] = v3
+    output[lane, :, chunk] .= (x0, x1, x2, x3, v0, v1, v2, v3)
     
     
 
