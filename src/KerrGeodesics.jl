@@ -1,12 +1,15 @@
 module KerrGeodesics
 
-using LoopVectorization, KernelAbstractions, FastDifferentiation, Adapt, LinearAlgebra, StaticArrays
+using KernelAbstractions, FastDifferentiation, Adapt, LinearAlgebra, StaticArrays, Colors, Images, VideoIO
 include("./AlgebraicUtils.jl")
 include("./structs.jl")
 include("./GeodesicOps.jl")
 include("./CameraUtils.jl")
-include("./CameraKernels.jl")
+include("./CameraFunctions.jl")
+include("./RenderKernels.jl")
 include("./KADiffOperators.jl")
 
-export KerrMetric, TimeStepScaler, calculate_differential!, PinHoleCamera
+export KerrMetric, TimeStepScaler, PinHoleCamera, 
+    SubStruct, ensemble_ODE_RK4!, propegate_camera_chain, 
+    render_output, PinHoleCamera
 end

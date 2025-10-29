@@ -1,8 +1,9 @@
+#fallback method for arbitrary raybundles, with no spatial clustering...
 @kernel unsafe_indices=true function ensemble_ODE_RK4!(output::AbstractArray{T},
     @Const(state::AbstractArray{T}),
     @Const(metric::KerrMetric{T}), 
-    @Const(batch::SubStruct{V, H}), 
-    @Const(dtcontrol::TimeStepScaler{T})) where {T, V, H}
+    @Const(batch::SubStruct{V, H, NWarps, MWarps}), 
+    @Const(dtcontrol::TimeStepScaler{T})) where {T, V, H, NWarps, MWarps}
 
     g_index = @index(Global, Linear)
     chunk, lane = divrem(g_index - 1, V*H) .+ 1

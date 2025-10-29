@@ -144,6 +144,7 @@ struct PinHoleCamera{T}
     vertical_angle::T
     horizontal_px::Int
     vertical_px::Int
+    raised_u0::T
 end
 
 function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArray{T}, 
@@ -176,13 +177,13 @@ function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArr
     #since lowered_velocity is timelike, there is a sign flip here.
     lowered_pointing_tpl_interim = tuple(lowered_pointing...) .+ 
         yield_innerprod(inv_metric_value, lowered_velocity_tpl, tuple(lowered_pointing...)) .* lowered_velocity_tpl
-    
+        
     lowered_pointing_tpl = normalize_fourveloc(inv_metric_value, lowered_pointing_tpl_interim...; norm = T(1), null = false)
     
     lowered_upward_tpl_interim = tuple(lowered_upward...) .+ 
         yield_innerprod(inv_metric_value, lowered_velocity_tpl, tuple(lowered_upward...)) .* lowered_velocity_tpl .-
         yield_innerprod(inv_metric_value, lowered_pointing_tpl, tuple(lowered_upward...)) .* lowered_pointing_tpl
-
+    
     lowered_upward_tpl = normalize_fourveloc(inv_metric_value, lowered_upward_tpl_interim...; norm = T(1), null = false)
     
     e0 = SVector{4, T}(lowered_velocity_tpl)
@@ -214,5 +215,14 @@ function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArr
 
 end
 
+#Rendering utils
 
+@inline function cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)
+    #uses approximate flatness
+    @fastmath r = sqrt(x1^2 + x2^2 + x3^2)
+    @fastmath θ = acos(x3 / r)
+    @fastmath ϕ = atan(x2, x1)
+
+    return ϕ, θ
+end
 

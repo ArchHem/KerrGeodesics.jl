@@ -357,16 +357,64 @@ end
 
 end
 
-@inline function RK4step(x0::T, x1::T, x2::T, x3::T, v0::T, v1::T, v2::T, v3::T, metric::KerrMetric{T}, dt::T) where T
+@inline function RK4step(x0::T, x1::T, x2::T, x3::T, v0::T, v1::T, v2::T, v3::T, 
+                         metric::KerrMetric{T}, dt::T) where T
 
-    #ould use a tuple based abstrction here, but I am paranoid about allocations or spilling
-    state = (x0, x1, x2, x3, v0, v1, v2, v3)
+                        #for some reason, the original, tuble-base logic allocated here.
     @fastmath begin 
-        dstate_1 = calculate_differential(state, metric)
-        dstate_2 = calculate_differential(state .+ dt * T(0.5) * dstate_1, metric)
-        dstate_3 = calculate_differential(state .+ dt * T(0.5) * dstate_2, metric)
-        dstate_4 = calculate_differential(state .+ dt * dstate_3, metric)
-        newstate = state .+ T(dt/6) * (dstate_1 + 2*dstate_2 + 2*dstate_3 + dstate_4)
+        dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
+            calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
+        dt_half = dt * T(0.5)
+        dx0_2, dx1_2, dx2_2, dx3_2, dv0_2, dv1_2, dv2_2, dv3_2 = 
+            calculate_differential(
+                x0 + dt_half * dx0_1,
+                x1 + dt_half * dx1_1,
+                x2 + dt_half * dx2_1,
+                x3 + dt_half * dx3_1,
+                v0 + dt_half * dv0_1,
+                v1 + dt_half * dv1_1,
+                v2 + dt_half * dv2_1,
+                v3 + dt_half * dv3_1,
+                metric
+            )
+
+        dx0_3, dx1_3, dx2_3, dx3_3, dv0_3, dv1_3, dv2_3, dv3_3 = 
+            calculate_differential(
+                x0 + dt_half * dx0_2,
+                x1 + dt_half * dx1_2,
+                x2 + dt_half * dx2_2,
+                x3 + dt_half * dx3_2,
+                v0 + dt_half * dv0_2,
+                v1 + dt_half * dv1_2,
+                v2 + dt_half * dv2_2,
+                v3 + dt_half * dv3_2,
+                metric
+            )
+
+        dx0_4, dx1_4, dx2_4, dx3_4, dv0_4, dv1_4, dv2_4, dv3_4 = 
+            calculate_differential(
+                x0 + dt * dx0_3,
+                x1 + dt * dx1_3,
+                x2 + dt * dx2_3,
+                x3 + dt * dx3_3,
+                v0 + dt * dv0_3,
+                v1 + dt * dv1_3,
+                v2 + dt * dv2_3,
+                v3 + dt * dv3_3,
+                metric
+            )
+        
+        dt6 = dt / T(6)
+        dt3 = dt / T(3)
+        new_x0 = x0 + dt6 * (dx0_1 + dx0_4) + dt3 * (dx0_2 + dx0_3)
+        new_x1 = x1 + dt6 * (dx1_1 + dx1_4) + dt3 * (dx1_2 + dx1_3)
+        new_x2 = x2 + dt6 * (dx2_1 + dx2_4) + dt3 * (dx2_2 + dx2_3)
+        new_x3 = x3 + dt6 * (dx3_1 + dx3_4) + dt3 * (dx3_2 + dx3_3)
+        new_v0 = v0 + dt6 * (dv0_1 + dv0_4) + dt3 * (dv0_2 + dv0_3)
+        new_v1 = v1 + dt6 * (dv1_1 + dv1_4) + dt3 * (dv1_2 + dv1_3)
+        new_v2 = v2 + dt6 * (dv2_1 + dv2_4) + dt3 * (dv2_2 + dv2_3)
+        new_v3 = v3 + dt6 * (dv3_1 + dv3_4) + dt3 * (dv3_2 + dv3_3)
     end
-    return newstate
+    
+    return (new_x0, new_x1, new_x2, new_x3, new_v0, new_v1, new_v2, new_v3)
 end
