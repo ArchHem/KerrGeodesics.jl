@@ -144,7 +144,6 @@ struct PinHoleCamera{T}
     vertical_angle::T
     horizontal_px::Int
     vertical_px::Int
-    raised_u0::T
 end
 
 function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArray{T}, 

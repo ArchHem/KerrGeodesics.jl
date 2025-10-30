@@ -17,6 +17,12 @@
 
     v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i) / (V * NWarps), T(j) / (H * MWarps), local_camera)
 
+    #normalization steps
+    metric_tpl = yield_inverse_metric(x0, x1, x2, x3, metric)
+    w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
+
+    v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
+
     
     N = dtcontrol.maxtimesteps
 
@@ -26,19 +32,30 @@
 
 
         r2 = yield_r2(x0, x1, x2, x3, metric)
-        if r2 > dtcontrol.r_stop || v0 > dtcontrol.redshift_stop
-            break
-        end
+        
         #use RK4, we move backwards.
         dt = -get_dt(r2, dtcontrol)
 
         dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3 = RK4step(x0, x1, x2, x3, v0, v1, v2, v3, metric, dt)
+
+        if r2 > dtcontrol.r_stop || dx0 > dtcontrol.redshift_stop
+            break
+        end
+
+        x0, x1, x2, x3, v0, v1, v2, v3 = x0 + dt*dx0, x1 + dt*dx1, x2 + dt*dx2, x3 + dt*dx3,
+                                            v0 + dt*dv0, v1 + dt*dv1, v2 + dt*dv2, v3 + dt*dv3
         
 
     end
     ϕ, θ = cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)
 
-    if v0 > dtcontrol.redshift_stop
+    r2 = yield_r2(x0, x1, x2, x3, metric)
+    #use RK4, we move backwards.
+    dt = -get_dt(r2, dtcontrol)
+
+    dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3 = RK4step(x0, x1, x2, x3, v0, v1, v2, v3, metric, dt)
+
+    if dx0 > dtcontrol.redshift_stop
         flag = T(0)
     end
     #output stores a flag, and the casted ray positions.
@@ -78,79 +95,47 @@ function propegate_camera_chain(
     return output
 end
 
-@kernel unsafe_indices = true function linear_background_render(
-    frame_buffer::AbstractArray{RGB{T}},
-    @Const(texture::AbstractArray{RGB{T}}),
-    @Const(output::AbstractArray{T}),
-    @Const(batch::SubStruct{V, H, NWarps, MWarps})
+@kernel unsafe_indices = true function nearest_render!(
+    frame_buffer::AbstractArray{RGB{T}, 3},
+    @Const(texture::AbstractArray{RGB{T}, 2}),
+    @Const(output::AbstractArray{T, 3}),
+    @Const(batch::SubStruct{V, H, NWarps, MWarps}),
+    @Const(tex_height::Int), 
+    @Const(tex_width::Int)
     ) where {T, V, H, NWarps, MWarps}
-
+    
     g_index = @index(Global, Linear)
     chunk, lane = divrem(g_index - 1, V*H) .+ 1
-
-    #i,j are pixel coordinates to color: k is the frame index.
+    
     i, j, k = array_index_to_video_index(chunk, lane, batch)
-    flag, ϕ, θ = @views output[lane, :, chunk]
-    #a flag of T(0) means that that pixel should be black.
-
+    
+    flag = output[lane, 1, chunk]
+    ϕ = output[lane, 2, chunk]
+    θ = output[lane, 3, chunk]
+    
+    #we _could_ rewrite this to use texture memory instead, by dispatching on backend...
     if flag == T(0)
         frame_buffer[i, j, k] = RGB{T}(T(0), T(0), T(0))
+    else
         
-    end
-
-    tex_height, tex_width = size(texture)
-
-    @fastmath begin
-        u = (ϕ + T(π)) / T(2π)
-        v = θ / T(π)
-        u = clamp(u, T(0), T(1))
+        inv_2pi = T(1) / (T(2) * T(π))
+        inv_pi = T(1) / T(π)
+        
+        u = (ϕ + T(π)) * inv_2pi
+        v = θ * inv_pi
+        
         v = clamp(v, T(0), T(1))
-
-        x_cont = u * T(tex_width - 1)
-        y_cont = v * T(tex_height - 1)
-
-        x0 = floor(Int, x_cont)
-        y0 = floor(Int, y_cont)
-        x1 = min(x0 + 1, tex_width - 1)
-        y1 = min(y0 + 1, tex_height - 1)
+        tex_x = unsafe_trunc(Int, u * T(tex_width)) + 1
+        tex_y = unsafe_trunc(Int, v * T(tex_height)) + 1
+        tex_x = mod1(tex_x, tex_width)
+        tex_y = clamp(tex_y, 1, tex_height)
         
-        fx = x_cont - T(x0)
-        fy = y_cont - T(y0)
-
-        x0 += 1
-        y0 += 1
-        x1 += 1
-        y1 += 1
-        
-        x0 = mod1(x0, tex_width)
-        x1 = mod1(x1, tex_width)
-        
-        c00 = texture[y0, x0]
-        c10 = texture[y0, x1]
-        c01 = texture[y1, x0]
-        c11 = texture[y1, x1]
-
-        r = (c00.r * (T(1) - fx) + c10.r * fx) * (T(1) - fy) +
-            (c01.r * (T(1) - fx) + c11.r * fx) * fy
-            
-        g = (c00.g * (T(1) - fx) + c10.g * fx) * (T(1) - fy) +
-            (c01.g * (T(1) - fx) + c11.g * fx) * fy
-            
-        b = (c00.b * (T(1) - fx) + c10.b * fx) * (T(1) - fy) +
-            (c01.b * (T(1) - fx) + c11.b * fx) * fy
-        
-        frame_buffer[i, j, k] = RGB{T}(
-            clamp(r, T(0), T(1)),
-            clamp(g, T(0), T(1)),
-            clamp(b, T(0), T(1))
-        )
+        frame_buffer[i, j, k] = texture[tex_y, tex_x]
     end
-
-
 end
 
 function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, NWarps, MWarps}, 
-    backend, texture::AbstractArray{RGB{T}},  framerate::Int; blocksize = 256) where {T, V, H, NWarps, MWarps}
+    texture::AbstractArray{RGB{T}}, backend,  framerate::Int; blocksize = 256) where {T, V, H, NWarps, MWarps}
 
     output_backend = KernelAbstractions.get_backend(output)
     if output_backend != backend
@@ -164,15 +149,14 @@ function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, NWarps, 
 
     frame_buffer = KernelAbstractions.zeros(backend, RGB{T}, I, J, K)
     texture_device = adapt(backend, texture)
-    
     total_threads = V * H * NWarps * MWarps * N_frames
-    
-    kernel! = linear_background_render!(backend, blocksize)
+    tex_height, tex_width = size(texture)
+    kernel! = nearest_render!(backend, blocksize)
     kernel!(
         frame_buffer,
         texture_device,
         output,
-        batch;
+        batch, tex_height, tex_width;
         ndrange = total_threads
     )
 
@@ -184,7 +168,7 @@ function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, NWarps, 
     writer = open_video_out(
         filename,
         RGB{N0f8},
-        (J, I);
+        (I, J);
         framerate = framerate,
         codec_name = "libx264",
         encoder_options = (crf=23, preset="medium")

@@ -404,17 +404,17 @@ end
                 metric
             )
         
-        dt6 = dt / T(6)
-        dt3 = dt / T(3)
-        new_x0 = x0 + dt6 * (dx0_1 + dx0_4) + dt3 * (dx0_2 + dx0_3)
-        new_x1 = x1 + dt6 * (dx1_1 + dx1_4) + dt3 * (dx1_2 + dx1_3)
-        new_x2 = x2 + dt6 * (dx2_1 + dx2_4) + dt3 * (dx2_2 + dx2_3)
-        new_x3 = x3 + dt6 * (dx3_1 + dx3_4) + dt3 * (dx3_2 + dx3_3)
-        new_v0 = v0 + dt6 * (dv0_1 + dv0_4) + dt3 * (dv0_2 + dv0_3)
-        new_v1 = v1 + dt6 * (dv1_1 + dv1_4) + dt3 * (dv1_2 + dv1_3)
-        new_v2 = v2 + dt6 * (dv2_1 + dv2_4) + dt3 * (dv2_2 + dv2_3)
-        new_v3 = v3 + dt6 * (dv3_1 + dv3_4) + dt3 * (dv3_2 + dv3_3)
+        renorm_6 = 1 / T(6)
+        renorm_3 = 1 / T(3)
+        dx0 = renorm_6 * (dx0_1 + dx0_4) + renorm_3 * (dx0_2 + dx0_3)
+        dx1 = renorm_6 * (dx1_1 + dx1_4) + renorm_3 * (dx1_2 + dx1_3)
+        dx2 = renorm_6 * (dx2_1 + dx2_4) + renorm_3 * (dx2_2 + dx2_3)
+        dx3 = renorm_6 * (dx3_1 + dx3_4) + renorm_3 * (dx3_2 + dx3_3)
+        dv0 = renorm_6 * (dv0_1 + dv0_4) + renorm_3 * (dv0_2 + dv0_3)
+        dv1 = renorm_6 * (dv1_1 + dv1_4) + renorm_3 * (dv1_2 + dv1_3)
+        dv2 = renorm_6 * (dv2_1 + dv2_4) + renorm_3 * (dv2_2 + dv2_3)
+        dv3 = renorm_6 * (dv3_1 + dv3_4) + renorm_3 * (dv3_2 + dv3_3)
     end
     
-    return (new_x0, new_x1, new_x2, new_x3, new_v0, new_v1, new_v2, new_v3)
+    return (dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3)
 end

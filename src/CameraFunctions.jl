@@ -31,9 +31,6 @@ end
     local_vector = @. C * camera.lowered_velocity - camera.lowered_pointing - 
         vertical_scale * camera.lowered_upward - 
         horizontal_scale * camera.lowered_rightward
-    #scale vector so that u0 is 1
-
-    local_vector = local_vector ./ local_vector[1]
 
     return local_vector
     
