@@ -8,8 +8,9 @@ include("./CameraUtils.jl")
 include("./CameraFunctions.jl")
 include("./RenderKernels.jl")
 include("./KADiffOperators.jl")
+include("./Utils.jl")
 
 export KerrMetric, TimeStepScaler, PinHoleCamera, 
     SubStruct, ensemble_ODE_RK4!, propegate_camera_chain, 
-    render_output, PinHoleCamera
+    render_output, PinHoleCamera, integrate_single_geodesic!
 end

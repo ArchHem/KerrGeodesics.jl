@@ -17,7 +17,7 @@
 
     v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i) / (V * NWarps), T(j) / (H * MWarps), local_camera)
 
-    #normalization steps
+    #normalization steps (this could be wrapped into the came constructor, TODO)
     metric_tpl = yield_inverse_metric(x0, x1, x2, x3, metric)
     w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
 

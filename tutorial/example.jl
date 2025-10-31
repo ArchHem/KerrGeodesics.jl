@@ -8,7 +8,7 @@ bckg = load(texture_path)
 bckg_fp32 = RGB{Float32}.(bckg)
 
 st = SubStruct(8, 4, 200, 800)
-position = [0.f0, 5.f0, 0.0f0, 0.0f0]
+position = [0.f0, 12.f0, 0.0f0, 0.0f0]
 pointing = [0.f0, -1.f0, 0.0f0, 0.0f0]
 upwards = [0.f0, 0.0f0, 0.0f0, 1.0f0]
 veloc = [-1.f0, 0.f0, 0.f0, 0.f0]
@@ -23,7 +23,7 @@ metric = KerrMetric{Float32}(1f0, 0.0f0)
 
 example_camera = PinHoleCamera(position, veloc, pointing, upwards, metric, angle_x, angle_y, Nx, Ny)
 
-dtc = TimeStepScaler(2.f0, 0.02f0, 0.4f0, 0.1f0, 15f0, 2000f0, 900f0, 100)
+dtc = TimeStepScaler(0.5f0, 0.02f0, 30f0^2, 2000f0, 6400f0, 10000)
 interim = propegate_camera_chain([example_camera], st, dtc, metric, backend)
 
 res = render_output(interim, st, bckg_fp32, backend, 1)
