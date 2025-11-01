@@ -67,7 +67,7 @@ end
 
             #for reasons of convinience, we choose a to be the positive root - we have a negative zero contrib
             #This is technicaly not stable, but should be fine for fp32 maybe even 16
-            scaler = (-mixed_contrib - sqrt(mixed_contrib^2 - 4 * (zero_contrib-norm) * non_zero_contrib)) / (2 * (zero_contrib-norm))
+            scaler = (-mixed_contrib - sqrt(mixed_contrib^2 - 4 * (zero_contrib-norm) * non_zero_contrib)) / (2 * (non_zero_contrib))
             w1 = scaler * v1
             w2 = scaler * v2
             w3 = scaler * v3
@@ -144,6 +144,7 @@ struct PinHoleCamera{T}
     vertical_angle::T
     horizontal_px::Int
     vertical_px::Int
+    inverse_metric_tpl::NTuple{10, T}
 end
 
 function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArray{T}, 
@@ -205,12 +206,22 @@ function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArr
 
     e3_up = SVector{4, T}(e3_up)
     
-    e3_interim = mult_by_metric(inv_metric_value, e3_up)
+    u00, u10, u20, u30, u11, u21, u31, u22, u32, u33 = inv_metric_value
+
+    inv_metric = @SMatrix [u00 u10 u20 u30; 
+                        u10 u11 u21 u31;
+                        u20 u21 u22 u32;
+                        u30 u31 u32 u33]
+
+    #since v^u = g^uv v_v
+    e3_interim = inv_metric \ e3_up
+
+
     e3 = SVector{4, T}(normalize_fourveloc(inv_metric_value, e3_interim...; norm = T(1), null = false))
 
     pos = SVector{4, T}(position)
 
-    return PinHoleCamera{T}(pos, e0, e1, e2, e3, horizontal_angle, vertical_angle, horizontal_px, vertical_px)
+    return PinHoleCamera{T}(pos, e0, e1, e2, e3, horizontal_angle, vertical_angle, horizontal_px, vertical_px, inv_metric_value)
 
 end
 
@@ -218,9 +229,9 @@ end
 
 @inline function cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)
     #uses approximate flatness
-    @fastmath r = sqrt(x1^2 + x2^2 + x3^2)
-    @fastmath θ = acos(x3 / r)
-    @fastmath ϕ = atan(x2, x1)
+    @fastmath r = sqrt(v1^2 + v2^2 + v3^2)
+    @fastmath θ = acos(v3 / r)
+    @fastmath ϕ = atan(v2, v1)
 
     return ϕ, θ
 end

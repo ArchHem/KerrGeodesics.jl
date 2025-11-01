@@ -19,11 +19,11 @@ Nx = 3200
 angle_y = Float32(pi/12)
 angle_x = Float32(pi/6)
 
-metric = KerrMetric{Float32}(1f0, 0.0f0)
+metric = KerrMetric{Float32}(1f0, 0.2f0)
 
 example_camera = PinHoleCamera(position, veloc, pointing, upwards, metric, angle_x, angle_y, Nx, Ny)
 
-dtc = TimeStepScaler(0.5f0, 0.02f0, 30f0^2, 2000f0, 6400f0, 10000)
+dtc = TimeStepScaler(0.1f0, 0.025f0, 60f0^2, 2000f0, 6400f0, 5000)
 interim = propegate_camera_chain([example_camera], st, dtc, metric, backend)
 
 res = render_output(interim, st, bckg_fp32, backend, 1)

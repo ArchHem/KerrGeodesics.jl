@@ -2,10 +2,10 @@ include("../src/KerrGeodesics.jl")
 using .KerrGeodesics, Plots
 plotly()
 
-star_state = [0.0, 5.0, 0.0, 5.0, -1.0, 0.0, 1.0, 0.0]
+star_state = [0.0, 5.0, 0.0, 0.5, -1.0, 0.0, 1.0, 0.0]
 
-N = 100
-dtc = TimeStepScaler(0.2, 0.01, 200.0^2, 500., 1600., N)
+N = 8000
+dtc = TimeStepScaler(0.2, 0.005, 200.0^2, 500., 1600., N)
 
 metric = KerrMetric{Float64}(1., 0.2)
 
