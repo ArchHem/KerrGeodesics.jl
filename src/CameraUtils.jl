@@ -13,10 +13,10 @@
     r = sqrt(r2)
     f = 2 * M * r2 * r / (r4 + a2 * x3_2)
     common_subdiv = r2 + a2
-    l0 = -T(1)
-    l1 = (r * x1 + a * x2) / common_subdiv
-    l2 = (r * x2 - a * x1) / common_subdiv
-    l3 = x3 / r
+    l0 = T(1)
+    l1 = -(r * x1 + a * x2) / common_subdiv
+    l2 = -(r * x2 - a * x1) / common_subdiv
+    l3 = -x3 / r
 
     fl0 = f * l0
     fl1 = f * l1
