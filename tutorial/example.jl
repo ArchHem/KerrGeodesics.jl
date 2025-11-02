@@ -17,15 +17,15 @@ veloc = [-1.f0, 0.f0, 0.f0, 0.f0]
 #need to align dimensions with ST for best results.
 Ny = 1600
 Nx = 3200
-angle_y = Float32(pi/12)
-angle_x = Float32(pi/6)
+angle_y = Float32(pi/4)
+angle_x = Float32(pi/2)
 
-metric = KerrMetric{Float32}(1f0, 0.9f0)
+metric = KerrMetric{Float32}(1f0, 0.0f0)
 
 example_camera = PinHoleCamera(position, veloc, pointing, upwards, metric, angle_x, angle_y, Nx, Ny)
 
 N = 10000
-dtc = TimeStepScaler(0.25f0, 0.025f0, 60f0^2, 35f0, 6400f0, N)
+dtc = TimeStepScaler(0.25f0, 0.025f0, 60f0^2, 15f0, 6400f0, N)
 interim = propegate_camera_chain([example_camera], st, dtc, metric, backend)
 
 res = render_output(interim, st, bckg_fp32, backend, 1)
