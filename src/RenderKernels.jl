@@ -22,7 +22,7 @@
     metric_tpl = local_camera.inverse_metric_tpl
     w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
 
-    v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
+    #v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
 
     
     N = dtcontrol.maxtimesteps

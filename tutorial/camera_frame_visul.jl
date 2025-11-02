@@ -37,8 +37,8 @@ end
 
 trajectory, b1 = integrate_and_plot!(nothing, example_camera, metric, dtc, 1/1600, 1/3200, N, plot_first=true)
 
-for j in LinRange(0, 1, 30)
-    for i in LinRange(0, 1, 30)
+for j in LinRange(0, 1, 5)
+    for i in LinRange(0, 1, 5)
         local_buffer = integrate_and_plot!(trajectory, example_camera, metric, dtc, i, j, N)
     end
 end

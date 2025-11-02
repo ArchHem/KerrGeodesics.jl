@@ -100,3 +100,10 @@ end
 
 
 end
+
+@testset "Geometry" begin
+    #choose some random positions
+    metric = KerrMetric{Float32}(1f0, 0.2f0)
+
+    r2 = KerrGeodesics.yield_r2
+end
