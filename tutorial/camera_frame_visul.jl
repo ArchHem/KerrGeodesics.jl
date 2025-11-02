@@ -19,7 +19,7 @@ metric = KerrMetric{Float32}(1f0, 0.9f0)
 example_camera = PinHoleCamera(position, veloc, pointing, upwards, metric, angle_x, angle_y, Nx, Ny)
 
 N = 10000
-dtc = TimeStepScaler(0.25f0, 0.025f0, 60f0^2, 20f0, 6400f0, N)
+dtc = TimeStepScaler(0.25f0, 0.025f0, 60f0^2, 3f0, 6400f0, N)
 
 function integrate_and_plot!(trajectory, camera, metric, dtc, y_frac, x_frac, N; plot_first=false)
     state = KerrGeodesics.generate_camera_ray(Float32(y_frac), Float32(x_frac), camera)
@@ -37,8 +37,8 @@ end
 
 trajectory, b1 = integrate_and_plot!(nothing, example_camera, metric, dtc, 1/1600, 1/3200, N, plot_first=true)
 
-for j in LinRange(0, 1, 10)
-    for i in LinRange(0, 1, 10)
+for j in LinRange(0, 1, 30)
+    for i in LinRange(0, 1, 30)
         local_buffer = integrate_and_plot!(trajectory, example_camera, metric, dtc, i, j, N)
     end
 end
