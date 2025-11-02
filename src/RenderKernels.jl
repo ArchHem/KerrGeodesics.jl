@@ -18,7 +18,7 @@
     v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i) / (V * NWarps), T(j) / (H * MWarps), local_camera)
 
     #normalization steps (this could be wrapped into the came constructor, TODO)
-    #renorm such that the raised velocity u_0 = 1 for ALL rays
+    #renorm such that the raised velocity u0 = 1 for ALL rays
     metric_tpl = local_camera.inverse_metric_tpl
     w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
 

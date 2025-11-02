@@ -18,15 +18,26 @@ function build_diffop_fastdiff(metric::KerrMetric{T}) where T
     R2 = x1_2 + x2_2 + x3_2
     a2 = a*a
     sub1 = R2 - a2
+    #r2 is defined via
+
+    #
+    # (x^2 + y^2)/(r^2 + a^2) + z^2 / r^2 = 1) ->
+    # (x^2 + y^2) * r^2 + (r^2 + a^2) * z^2 = r^2 (r^2 + a^2)
+    # Let U = r^2 
+    # (x^2 + y^2) * U + (U + a^2) * z^2 = U^2 + U * a^2
+    # hence, 
+    # (x^2 + y^2 + z^2 - a^2) * U - U^2 + a^2 * z^2
+
     r2 = T(0.5) * (sub1 + sqrt(sub1^2 + T(4) * a2 * x3_2))
     r4 = r2 * r2
     r = sqrt(r2)
     f = 2 * M * r2 * r / (r4 + a2 * x3_2)
     common_subdiv = r2 + a2
-    l0 = T(1)
-    l1 = -(r * x1 + a * x2) / common_subdiv
-    l2 = -(r * x2 - a * x1) / common_subdiv
-    l3 = -x3 / r
+    #calculate INVERSE metric in signature -1, 1, 1, 1
+    l0 = -T(1)
+    l1 = (r * x1 + a * x2) / common_subdiv
+    l2 = (r * x2 - a * x1) / common_subdiv
+    l3 = x3 / r
 
     fl0 = f * l0
     fl1 = f * l1
@@ -53,7 +64,7 @@ function build_diffop_fastdiff(metric::KerrMetric{T}) where T
     jac = vec(FastDifferentiation.jacobian([innerprod_result],[x0, x1, x2, x3]))
     
     combined_ = append!([w0, w1, w2, w3], jac)
-    println(size(combined_))
+    
     jacexpr = make_Expr(combined_,[x0, x1, x2, x3, v0, v1, v2, v3, a, M])
 
     return jacexpr

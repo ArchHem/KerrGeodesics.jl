@@ -13,10 +13,10 @@
     r = sqrt(r2)
     f = 2 * M * r2 * r / (r4 + a2 * x3_2)
     common_subdiv = r2 + a2
-    l0 = T(1)
-    l1 = -(r * x1 + a * x2) / common_subdiv
-    l2 = -(r * x2 - a * x1) / common_subdiv
-    l3 = -x3 / r
+    l0 = -T(1)
+    l1 = (r * x1 + a * x2) / common_subdiv
+    l2 = (r * x2 - a * x1) / common_subdiv
+    l3 = x3 / r
 
     fl0 = f * l0
     fl1 = f * l1
@@ -67,7 +67,9 @@ end
 
             #for reasons of convinience, we choose a to be the positive root - we have a negative zero contrib
             #This is technicaly not stable, but should be fine for fp32 maybe even 16
-            scaler = (-mixed_contrib - sqrt(mixed_contrib^2 - 4 * (zero_contrib-norm) * non_zero_contrib)) / (2 * (non_zero_contrib))
+            scaler_1 = (-mixed_contrib - sqrt(mixed_contrib^2 - 4 * (zero_contrib-norm) * non_zero_contrib)) / (2 * (non_zero_contrib))
+            scaler_2 = (-mixed_contrib + sqrt(mixed_contrib^2 - 4 * (zero_contrib-norm) * non_zero_contrib)) / (2 * (non_zero_contrib))
+            scaler = max(scaler_1, scaler_2)
             w1 = scaler * v1
             w2 = scaler * v2
             w3 = scaler * v3
