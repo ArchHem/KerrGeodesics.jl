@@ -15,14 +15,15 @@
 
     x0, x1, x2, x3 = local_camera.position
 
-    v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i) / (V * NWarps), T(j) / (H * MWarps), local_camera)
+    #shift so that they hit "center" of the pixel
+    v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i - T(0.5)) / (V * NWarps), T(j - T(0.5)) / (H * MWarps), local_camera)
 
     #normalization steps (this could be wrapped into the came constructor, TODO)
     #renorm such that the raised velocity u0 = 1 for ALL rays
     metric_tpl = local_camera.inverse_metric_tpl
     w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
 
-    #v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
+    v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
 
     
     N = dtcontrol.maxtimesteps
