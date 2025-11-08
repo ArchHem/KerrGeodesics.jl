@@ -1,6 +1,6 @@
 module KerrGeodesics
 
-using KernelAbstractions, Symbolics, Adapt, LinearAlgebra, StaticArrays, Colors, Images, VideoIO
+using KernelAbstractions, ForwardDiff, Adapt, LinearAlgebra, StaticArrays, Colors, Images, VideoIO
 include("./AlgebraicUtils.jl")
 include("./structs.jl")
 include("./CameraUtils.jl")

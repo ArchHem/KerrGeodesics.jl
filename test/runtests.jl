@@ -176,3 +176,19 @@ dvec_d = Float32[diff_tpl[i] for i in 5:8]
 
     
 end
+
+@testset "Perf" begin 
+    a = 0.2f0
+    metric = KerrMetric{Float32}(1f0, a)
+
+    x0 = 1.0f0
+    x1 = 6.2f0
+    x2 = 7.4f0
+    x3 = 3.2f0
+
+    v0 = -0.2f0
+    v1 = 1.2f0
+    v2 = -0.1f0
+    v3 = 0.2f0
+    @test (@allocated KerrGeodesics.calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)) == 0
+end

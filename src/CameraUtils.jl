@@ -1,4 +1,4 @@
-@inline function yield_inverse_metric(x0::T, x1::T, x2::T, x3::T, metric::KerrMetric{T}) where T
+@inline function yield_inverse_metric(x0, x1, x2, x3, metric::KerrMetric{T}) where T
     a = metric.a
     M = metric.M
     x1_2 = x1 * x1

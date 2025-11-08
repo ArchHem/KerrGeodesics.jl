@@ -1,4 +1,29 @@
-@inline function calculate_differential()
+@inline function calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric::KerrMetric{T}) where T
+
+    #kerr metric depends not on the x0 coord, so no need to create a non-primal for it.
+    x1_augmented = ForwardDiff.Dual(x1, (T(1), T(0), T(0)))
+    x2_augmented = ForwardDiff.Dual(x2, (T(0), T(1), T(0)))
+    x3_augmented = ForwardDiff.Dual(x3, (T(0), T(0), T(1)))
+
+    inverse_metric_tpl = yield_inverse_metric(x0, x1_augmented, x2_augmented, x3_augmented, metric)
+
+    #calculate the primal, 
+
+    primal_inverse_metric = ForwardDiff.value.(inverse_metric_tpl)
+    v_tpl = (v0, v1, v2, v3)
+    w0, w1, w2, w3 = mult_by_metric(primal_inverse_metric, v_tpl)
+
+    #dx0_inverse_metric = ForwardDiff.partials.(inverse_metric_tpl, 1)
+    dx1_inverse_metric = ForwardDiff.partials.(inverse_metric_tpl, 1)
+    dx2_inverse_metric = ForwardDiff.partials.(inverse_metric_tpl, 2)
+    dx3_inverse_metric = ForwardDiff.partials.(inverse_metric_tpl, 3)
+
+    dv0 = T(0)
+    dv1 = T(-0.5) * yield_innerprod(dx1_inverse_metric, v0, v1, v2, v3)
+    dv2 = T(-0.5) * yield_innerprod(dx2_inverse_metric, v0, v1, v2, v3)
+    dv3 = T(-0.5) * yield_innerprod(dx3_inverse_metric, v0, v1, v2, v3)
+
+    return (w0, w1, w2, w3, dv0, dv1, dv2, dv3)
     
 end
 
