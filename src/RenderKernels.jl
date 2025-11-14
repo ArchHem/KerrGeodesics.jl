@@ -137,7 +137,8 @@ end
 end
 
 function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, NWarps, MWarps}, 
-    texture::AbstractArray{RGB{T}}, backend,  framerate::Int; blocksize = 256) where {T, V, H, NWarps, MWarps}
+    texture::AbstractArray{RGB{T}}, backend,  framerate::Int; blocksize = 256, 
+    filename = nothing) where {T, V, H, NWarps, MWarps}
 
     output_backend = KernelAbstractions.get_backend(output)
     if output_backend != backend
@@ -165,7 +166,9 @@ function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, NWarps, 
     KernelAbstractions.synchronize(backend)
     frame_buffer_cpu = Array(frame_buffer)
 
-    filename = "output_$(I)x$(J)_$(K)frames_$(framerate)fps.mp4"
+    if isnothing(filename)
+        filename = "output_$(I)x$(J)_$(K)frames_$(framerate)fps.mp4"
+    end
     
     writer = open_video_out(
         filename,
