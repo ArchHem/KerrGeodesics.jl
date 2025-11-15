@@ -1,4 +1,6 @@
 include("../src/KerrGeodesics.jl")
+ENV["METAL_CAPTURE_ENABLED"] = 1
+ENV["METAL_DEVICE_WRAPPER_TYPE"] = 1
 using .KerrGeodesics, KernelAbstractions, Metal, Images
 
 backend = MetalBackend()
@@ -18,7 +20,7 @@ angle_x = Float32(pi/2)
 
 metric = KerrMetric{Float32}(1f0, 0.8f0)
 
-n_frames = 120
+n_frames = 4
 camera_chain = Vector{PinHoleCamera{Float32}}(undef, n_frames)
 
 for (idx, θ) in enumerate(LinRange(0.f0, 2.f0 * Float32(π), n_frames))
@@ -36,7 +38,13 @@ for (idx, θ) in enumerate(LinRange(0.f0, 2.f0 * Float32(π), n_frames))
 end
 
 N = 10000
-dtc = TimeStepScaler(0.25f0, 0.025f0, 60f0^2, 15f0, 6400f0, N)
-interim = propegate_camera_chain(camera_chain, st, dtc, metric, backend)
 
-res = render_output(interim, st, bckg_fp32, backend, 30)
+dtc = TimeStepScaler(0.25f0, 0.025f0, 60f0^2, 10f0, 6400f0, N)
+
+Metal.@capture begin
+
+    interim = propegate_camera_chain(camera_chain, st, dtc, metric, backend)
+
+    res = render_output(interim, st, bckg_fp32, backend, 2)
+
+end
