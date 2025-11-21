@@ -227,6 +227,22 @@ function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArr
 
 end
 
+function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArray{T}, 
+    lowered_pointing::AbstractArray{T}, lowered_upward::AbstractArray{T}, 
+    metric::KerrMetric{T},
+    horizontal_angle::T, vertical_angle::T, st::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}) where 
+    {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+
+    Ny = V * MicroNWarps * NBlocks
+    Nx = H * MicroMWarps * MBlocks
+    result = PinHoleCamera(position, lowered_velocity, 
+        lowered_pointing, lowered_upward, 
+        metric,
+        horizontal_angle, vertical_angle, Nx, Ny)
+
+    return result
+end
+
 #Rendering utils
 
 @inline function cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)

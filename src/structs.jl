@@ -38,10 +38,10 @@ end
     return dt
 end
 
-struct SubStruct{V, H, NWarps, MWarps}
+struct SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
 end
 
-function SubStruct(V, H, NWarps, MWarps)
-    return SubStruct{V, H, NWarps, MWarps}()
+function SubStruct(V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks)
+    return SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}()
 end

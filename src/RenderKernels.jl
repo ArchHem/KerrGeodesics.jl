@@ -1,9 +1,9 @@
 
 @kernel unsafe_indices = true function render_kernel!(output::AbstractArray{T},
     @Const(metric::KerrMetric{T}), 
-    @Const(batch::SubStruct{V, H, NWarps, MWarps}), 
+    @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
     @Const(dtcontrol::TimeStepScaler{T}), 
-    @Const(camerachain::AbstractVector{PinHoleCamera{T}})) where {T, V, H, NWarps, MWarps}
+    @Const(camerachain::AbstractVector{PinHoleCamera{T}})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     #initalize the ray.
     g_index = @index(Global, Linear)
@@ -16,7 +16,9 @@
     x0, x1, x2, x3 = local_camera.position
 
     #shift so that they hit "center" of the pixel
-    v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i - T(0.5)) / (V * NWarps), T(j - T(0.5)) / (H * MWarps), local_camera)
+    v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i - T(0.5)) / (V * MicroNWarps * NBlocks), 
+        T(j - T(0.5)) / (H * MicroMWarps * MBlocks), 
+        local_camera)
 
     #normalization steps (this could be wrapped into the came constructor, TODO)
     #renorm such that the raised velocity u0 = 1 for ALL rays
@@ -70,19 +72,18 @@ end
 
 function propegate_camera_chain(
     camerachain::AbstractVector{PinHoleCamera{T}}, 
-    batch::SubStruct{V, H, NWarps, MWarps}, 
+    batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
     dtcontrol::TimeStepScaler{T},
-    metric::KerrMetric{T}, backend; 
-    blockdim = 256
-    ) where {T, V, H, NWarps, MWarps}
+    metric::KerrMetric{T}, backend
+    ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     N_frames = length(camerachain)
-    N_total_warps = N_frames * NWarps * MWarps
+    N_total_warps = N_frames * MicroNWarps * MicroMWarps * NBlocks * MBlocks
 
     output = KernelAbstractions.zeros(backend, T, V * H, 3, N_total_warps)
     camerachain_device = adapt(backend, camerachain)
 
-    kernel! = render_kernel!(backend, blockdim)
+    kernel! = render_kernel!(backend, V * H * MicroNWarps * MicroMWarps)
 
     kernel!(
         output,
@@ -101,10 +102,10 @@ end
     frame_buffer::AbstractArray{RGB{T}, 3},
     @Const(texture::AbstractArray{RGB{T}, 2}),
     @Const(output::AbstractArray{T, 3}),
-    @Const(batch::SubStruct{V, H, NWarps, MWarps}),
+    @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}),
     @Const(tex_height::Int), 
     @Const(tex_width::Int)
-    ) where {T, V, H, NWarps, MWarps}
+    ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
     
     g_index = @index(Global, Linear)
     chunk, lane = divrem(g_index - 1, V*H) .+ 1
@@ -136,23 +137,24 @@ end
     end
 end
 
-function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, NWarps, MWarps}, 
-    texture::AbstractArray{RGB{T}}, backend,  framerate::Int; blocksize = 256, 
-    filename = nothing) where {T, V, H, NWarps, MWarps}
+function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
+    texture::AbstractArray{RGB{T}}, backend,  framerate::Int;
+    filename = nothing) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     output_backend = KernelAbstractions.get_backend(output)
+    blocksize = V * H * MicroMWarps * MicroNWarps
     if output_backend != backend
         error("Backend mismatch: output is on $output_backend but backend=$backend")
     end
 
-    I = V * NWarps
-    J = H * MWarps
-    N_frames = div(size(output, 3), NWarps * MWarps)
+    I = V * MicroNWarps * NBlocks
+    J = H * MicroMWarps * MBlocks
+    N_frames = div(size(output, 3), MicroNWarps * NBlocks * MicroMWarps * MBlocks)
     K = N_frames
 
     frame_buffer = KernelAbstractions.zeros(backend, RGB{T}, I, J, K)
     texture_device = adapt(backend, texture)
-    total_threads = V * H * NWarps * MWarps * N_frames
+    total_threads = V * H * MicroNWarps * NBlocks * MicroMWarps * MBlocks * N_frames
     tex_height, tex_width = size(texture)
     kernel! = nearest_render!(backend, blocksize)
     kernel!(

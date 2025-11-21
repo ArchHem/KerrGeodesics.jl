@@ -2,7 +2,6 @@ include("../src/KerrGeodesics.jl")
 using .KerrGeodesics, Plots
 
 plotly()
-st = SubStruct(8, 4, 200, 800)
 position = [0.f0, 40.f0, 0.0f0, 0.0f0]
 pointing = [0.f0, -1.f0, 0.0f0, 0.0f0]
 upwards = [0.f0, 0.0f0, 0.0f0, 1.0f0]

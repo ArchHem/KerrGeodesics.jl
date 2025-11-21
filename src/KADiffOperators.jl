@@ -2,8 +2,8 @@
 @kernel unsafe_indices=true function ensemble_ODE_RK4!(output::AbstractArray{T},
     @Const(state::AbstractArray{T}),
     @Const(metric::KerrMetric{T}), 
-    @Const(batch::SubStruct{V, H, NWarps, MWarps}), 
-    @Const(dtcontrol::TimeStepScaler{T})) where {T, V, H, NWarps, MWarps}
+    @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
+    @Const(dtcontrol::TimeStepScaler{T})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     g_index = @index(Global, Linear)
     chunk, lane = divrem(g_index - 1, V*H) .+ 1
