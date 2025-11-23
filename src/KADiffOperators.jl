@@ -1,4 +1,16 @@
 #fallback method for arbitrary raybundles, with no spatial clustering...
+
+
+"""
+    ensemble_ODE_RK4!(output::AbstractArray{T},
+    @Const(state::AbstractArray{T}),
+    @Const(metric::KerrMetric{T}), 
+    @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
+    @Const(dtcontrol::TimeStepScaler{T})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+
+    KA Kernel that propegates an initial states using an uncodintional RK4 integrator, storing only the final valid value. 
+
+"""
 @kernel unsafe_indices=true function ensemble_ODE_RK4!(output::AbstractArray{T},
     @Const(state::AbstractArray{T}),
     @Const(metric::KerrMetric{T}), 

@@ -1,3 +1,11 @@
+
+"""
+    calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric::KerrMetric{T}) where T
+
+    Calculates the RHS of the EOM ds_i / dγ = f(s) where γ is an arbitarry affine pareameter along the geodesic.
+
+    This function was gnerated via a combination of Symbolics.jl, FastDifferentation.jl and via manual CSE and cost analysis.
+"""
 @inline function calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric::KerrMetric{T}) where T
 
     t, x, y, z = x0, x1, x2, x3
@@ -209,12 +217,21 @@
     
 end
 
+"""
+    calculate_differential(state::NTuple{N, T}, metric::KerrMetric{T}) where {N,T}
+    Convinence wrapper for the EoM RHS for tuples.
+"""
 @inline function calculate_differential(state::NTuple{N, T}, metric::KerrMetric{T}) where {N,T}
     x0, x1, x2, x3, v0, v1, v2, v3 = state
     dstate = calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
     return dstate
 end
 
+"""
+    yield_r2(x0::T, x1::T, x2::T, x3::T, metric::KerrMetric{T}) where T
+
+    Calculates the square of the "radial" in the Kerr metric,
+"""
 @inline function yield_r2(x0::T, x1::T, x2::T, x3::T, metric::KerrMetric{T}) where T
 
     a = metric.a
@@ -233,6 +250,12 @@ end
 
 end
 
+"""
+    RK4step(x0::T, x1::T, x2::T, x3::T, v0::T, v1::T, v2::T, v3::T, 
+                         metric::KerrMetric{T}, dt::T) where T
+
+    Fully unrolled, unconditional Rk4 step using calculate_differential.
+"""
 @inline function RK4step(x0::T, x1::T, x2::T, x3::T, v0::T, v1::T, v2::T, v3::T, 
                          metric::KerrMetric{T}, dt::T) where T
 

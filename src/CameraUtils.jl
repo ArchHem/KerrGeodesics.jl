@@ -1,3 +1,10 @@
+
+"""
+    yield_inverse_metric(x0, x1, x2, x3, metric::KerrMetric{T}) where T
+
+    Calculates the inverse Kerr metric, whcih is stored as a tuple 
+        (u00, u10, u20, u30, u11, u21, u31, u22, u32, u33).
+"""
 @inline function yield_inverse_metric(x0, x1, x2, x3, metric::KerrMetric{T}) where T
     a = metric.a
     M = metric.M
@@ -36,6 +43,12 @@
     return u00, u10, u20, u30, u11, u21, u31, u22, u32, u33
 end
 
+"""
+    mult_by_metric(metric_tuple::NTuple{N, T}, v) where {N, T}
+
+    Given a 10-length represnetation (metric_tuple) of a symmetric 4x4 matrix A,
+        calculates the matrix product A * v
+"""
 @inline function mult_by_metric(metric_tuple::NTuple{N, T}, v) where {N, T}
     u00, u10, u20, u30, u11, u21, u31, u22, u32, u33 = metric_tuple
     v0, v1, v2, v3 = v
@@ -50,6 +63,23 @@ end
 
 #normalizes the four-velocity to be null, such that v0 is left unmodified.
 #to do this, we use the fact the the v0 component only contributes to certain elements.
+
+
+"""
+    normalize_fourveloc(metric_tuple::NTuple{N, T}, v0::T, v1::T, v2::T, v3::T; norm = T(0), null = true) where {N, T}
+
+    Given a four-velocity and the metric tuple, 
+
+    This function does not assume that the metric tuple is the inevrse or metric, neither that v0, v1, v2, v3 is raised or lwered, just that
+        we can take their innerproduct in a valid manner (ie. inverse metric and lowered velocity, or metric and raised velocity)
+
+    The function has two distinct execution paths:
+        if null = FALSE, the ray is assumed to be non-null, and it gets normalized by a simple scalar multiplication 
+            so thats its innerproduct with the metric becomes norm
+        if null = TRUE, the ray is assumed to be null. Since we can not employ scalar multiplication here, we instead assume that the tay can be made null,
+            by scalar multiplying its v1, v2, v3 components. This is done via an EXACT fomrula for an arbitary metric, assuming that v0 is the timelike component.
+            Please note that for such, one should set norm = 0
+"""
 @inline function normalize_fourveloc(metric_tuple::NTuple{N, T}, v0::T, v1::T, v2::T, v3::T; norm = T(0), null = true) where {N, T}
     u00, u10, u20, u30, u11, u21, u31, u22, u32, u33 = metric_tuple
 
@@ -99,6 +129,13 @@ end
 end
 
 
+"""
+    yield_innerprod(metric_tuple::NTuple{N, T}, v, w) where {N,T}
+
+    Calculates the generalized inner product m^ij v_i w_j where m^ij is assumed to be a symmetric 4x4 matrix, 
+    stored in a trinagular format as a 10-tuple
+
+"""
 @inline function yield_innerprod(metric_tuple::NTuple{N, T}, v, w) where {N,T}
     @fastmath begin
         v0, v1, v2, v3 = v
@@ -109,6 +146,16 @@ end
     return innerprod
 end
 
+
+
+"""
+    yield_determinant(metric_tuple::NTuple{N, T}) where {N, T}
+    Yields the the determinant of a 4x4 symmetric matrix, 
+    stored as 10 tuple in tringular format.
+
+    For the Kerr Metric, this is uniquely +/- 1 everywhere.
+
+"""
 @inline function yield_determinant(metric_tuple::NTuple{N, T}) where {N, T}
     u00, u10, u20, u30, u11, u21, u31, u22, u32, u33 = metric_tuple
 
@@ -136,6 +183,25 @@ end
     return det_val
 end
 
+"""
+    PinHoleCamera{T}
+    This is a struct that stores all the information needed to generate camera rays of a pinhole camera.
+        Uses four local, lowered, four-velocities that form an orthonromal basis to generate camera rays (1 timelike, 3 spacelike)
+
+    positon Stores 4 position as SVector
+    lowered_velocity:  4 lowered velocity SVector. Must be timelike
+    lowered_pointing: 4 vector, lowered, SVCector, must be spacelike. Can be interpreted as the "direction" the camera plane is facing
+    lowered_upward: 4 vector, lowered, SVCector, must be spacelike. Can be interpreted as the direction towards the "top" of the picture
+    lowered_righward: 4 vector, lowered, SVector, must be spacelike. 
+    horizontal_angle: Angle of opening along the "upward" image direction. Note that pixel spacing scales as tan(α/2)
+    vertical_angle: Angle of opening along the "rightward" image direction. Note that pixel spacing scales as tan(α/2)
+    horizontal_px: Number of pixels in the horizontal image direction
+    vertical_px: Number of pixels in the vertical direction
+    inverse_metric_tpl: Stores the inverse metric's trinagular form using a 10-tuple.
+
+
+    
+"""
 struct PinHoleCamera{T}
     position::SVector{4, T}
     lowered_velocity::SVector{4, T}
@@ -149,6 +215,17 @@ struct PinHoleCamera{T}
     inverse_metric_tpl::NTuple{10, T}
 end
 
+"""
+    PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArray{T}, 
+    lowered_pointing::AbstractArray{T}, lowered_upward::AbstractArray{T}, 
+    metric::KerrMetric{T},
+    horizontal_angle::T, vertical_angle::T, horizontal_px::Int, vertical_px::Int) where T
+
+
+    Convinence constructor for the pinhole camera in case the exact vectors are not know.
+        Provided the exact position, approximate lowered velocity of the camera, its pointing and upward vectors, 
+        this will generate exact vectors, via running a Gram-schmidt procedure.
+"""
 function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArray{T}, 
     lowered_pointing::AbstractArray{T}, lowered_upward::AbstractArray{T}, 
     metric::KerrMetric{T},
@@ -169,8 +246,8 @@ function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArr
     #I think its enough if we ensure timelike behaviour, and spacelike for the later...
 
     @assert yield_innerprod(inv_metric_value, lowered_velocity...) < 0
-    @assert lowered_pointing[1] == T(0)
-    @assert lowered_upward[1] == T(0)
+    #@assert lowered_pointing[1] == T(0)
+    #@assert lowered_upward[1] == T(0)
 
     #now, do a round of GS
 
@@ -227,6 +304,15 @@ function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArr
 
 end
 
+"""
+    PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArray{T}, 
+    lowered_pointing::AbstractArray{T}, lowered_upward::AbstractArray{T}, 
+    metric::KerrMetric{T},
+    horizontal_angle::T, vertical_angle::T, st::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}) where 
+    {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+
+    Convinence wrapper that uses a SubStruct to generate cameras, automatically aligning the number of pixels as needed.
+"""
 function PinHoleCamera(position::AbstractArray{T}, lowered_velocity::AbstractArray{T}, 
     lowered_pointing::AbstractArray{T}, lowered_upward::AbstractArray{T}, 
     metric::KerrMetric{T},
@@ -245,6 +331,11 @@ end
 
 #Rendering utils
 
+"""
+    cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)
+
+    Casts a )sufficently far away) ray to spacelike infinity based on its current heading. Specific to the Kerr metric
+"""
 @inline function cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)
     #uses approximate flatness
     @fastmath r = sqrt(v1^2 + v2^2 + v3^2)

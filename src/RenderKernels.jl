@@ -1,4 +1,18 @@
+"""
+    render_kernel!(output::AbstractArray{T},
+        @Const(metric::KerrMetric{T}), 
+        @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
+        @Const(dtcontrol::TimeStepScaler{T}), 
+        @Const(camerachain::AbstractVector{PinHoleCamera{T}})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
+    Given an array of initical conditions in the (V*H, 8, N_warps) shaped array, propegate eah ray to its end state, 
+    and cast them to spacelike infinity.
+        This method will take variables stored in teh input array (positions and lowered velocities) and linearly scale the later such that
+            the _raised_ four-velocities timelike component is 1 at the start of the integration.
+        This function writes into the 'output' array 3 variables, the "cast angles" of ϕ and θ into [:, 2, :] and [:, 3, :]
+        To [:, 1, :] it writes a flag, which is 0 if the tracked geodesic's timelike component has increased beyond a certain limit, 
+        indicating an event horizon.
+"""
 @kernel unsafe_indices = true function render_kernel!(output::AbstractArray{T},
     @Const(metric::KerrMetric{T}), 
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
@@ -70,6 +84,21 @@
 
 end
 
+"""
+    propegate_camera_chain(
+    camerachain::AbstractVector{PinHoleCamera{T}}, 
+    batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
+    dtcontrol::TimeStepScaler{T},
+    metric::KerrMetric{T}, backend
+    ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+
+    Given an array of cameras represneting frames of an array, render the entire video on the specified backed, 
+    allocating and synchroninzing all needed backend arrays.
+
+    The substruct argument is used to create a hierarchial memory layout of tiles of shape [V, H] being subset into tiles of shape 
+    [V * MicroNWarps, H * MicroMWarps], which form the frame of shape [V * MicroNWarps * NBlocks, H * MicroMWarps * MBlocks]. Note that 
+    this will launch the kernel with blocks of size [V * MicroNWarps * H * MicroMWarps], i.e. a single block for each microtile.
+"""
 function propegate_camera_chain(
     camerachain::AbstractVector{PinHoleCamera{T}}, 
     batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
@@ -97,6 +126,24 @@ function propegate_camera_chain(
     KernelAbstractions.synchronize(backend)
     return output
 end
+
+"""
+    nearest_render!(
+    frame_buffer::AbstractArray{RGB{T}, 3},
+    @Const(texture::AbstractArray{RGB{T}, 2}),
+    @Const(output::AbstractArray{T, 3}),
+    @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}),
+    @Const(tex_height::Int), 
+    @Const(tex_width::Int)
+    ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+
+    Nearest-pixel interpolant that turns an array of returned cast angles and flag into an RGB array, writing it into an an array of shape
+    (V * MicroNWarps * NBlocks, H * MicroMWarps * MBlocks, k_frames)
+
+    The substruct argument is used to interpret a hierarchial memory layout of tiles of shape [V, H] being subset into tiles of shape 
+    [V * MicroNWarps, H * MicroMWarps], which form the frame of shape [V * MicroNWarps * NBlocks, H * MicroMWarps * MBlocks]. Note that 
+    this kernel will be launched with the kernel with blocks of size [V * MicroNWarps * H * MicroMWarps], i.e. a single block for each microtile.
+"""
 
 @kernel unsafe_indices = true function nearest_render!(
     frame_buffer::AbstractArray{RGB{T}, 3},
@@ -137,6 +184,19 @@ end
     end
 end
 
+"""
+    render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
+    texture::AbstractArray{RGB{T}}, backend,  framerate::Int;
+    filename = nothing) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+
+
+    Wrapper function around the nearest-pixel interpolant kernel that turns an array of returned cast angles and flag into an RGB array, writing it into an an array of shape
+    (V * MicroNWarps * NBlocks, H * MicroMWarps * MBlocks, k_frames)
+
+    The substruct argument is used to interpret a hierarchial memory layout of tiles of shape [V, H] being subset into tiles of shape 
+    [V * MicroNWarps, H * MicroMWarps], which form the frame of shape [V * MicroNWarps * NBlocks, H * MicroMWarps * MBlocks]. Note that 
+    this kernel will be launched with the kernel with blocks of size [V * MicroNWarps * H * MicroMWarps], i.e. a single block for each microtile.
+"""
 function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
     texture::AbstractArray{RGB{T}}, backend,  framerate::Int;
     filename = nothing) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}

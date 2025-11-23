@@ -1,4 +1,10 @@
 #store metric information
+"""
+    KerrMetric{T}
+
+    Represenets a Kerr blackhole with "mass" M and normalized spin a.
+    Note that expected behaviour is onlgy guaranteed for abs(a) < M
+"""
 struct KerrMetric{T}
     M::T
     a::T
@@ -17,6 +23,8 @@ end
 #The outer horizon has r = sqrt(m^2-a^2) + m
 
 #i.e. r^2 = 2*m^2 - a^2 + 2 m * sqrt(m^2 - a^2)
+
+
 
 struct TimeStepScaler{T}
     max::T
