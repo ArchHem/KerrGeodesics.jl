@@ -5,8 +5,8 @@
 
 # TODO's
 
-* Better spacial coherence (reorder warp tiles to morton-like order inside the image frame, hopefully will cause less stalls)
-* Improve camera abstraction (pass a SubStruct object to the constructor function)
+* Better spacial coherence (reorder warp tiles to morton-like order inside the image frame, hopefully will cause less stalls) DONE
+* Improve camera abstraction (pass a SubStruct object to the constructor function) DONE
 * Better timestepping heuretics/calibration
 
 # Far-shot TODOs

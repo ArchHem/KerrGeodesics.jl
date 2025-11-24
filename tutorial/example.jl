@@ -16,13 +16,15 @@ angle_x = Float32(pi/2)
 
 metric = KerrMetric{Float32}(1f0, 0.8f0)
 
-n_frames = 4
+n_frames = 360
 camera_chain = Vector{PinHoleCamera{Float32}}(undef, n_frames)
+T = 40f0
 
 for (idx, θ) in enumerate(LinRange(0.f0, 2.f0 * Float32(π), n_frames))
     x1 = 40.f0 * cos(θ)
     x3 = 40.f0 * sin(θ)
-    position = [0.f0, x1, 0.f0, x3]
+    t = Float32(idx * T / n_frames)
+    position = [t, x1, 0.f0, x3] * (exp(-t * 0.035f0))
     
     pointing_unnorm = [0.f0, -x1, 0.f0, -x3]
     norm = sqrt(x1^2 + x3^2)
@@ -34,11 +36,10 @@ for (idx, θ) in enumerate(LinRange(0.f0, 2.f0 * Float32(π), n_frames))
 end
 
 N = 10000
-
-dtc = TimeStepScaler(0.25f0, 0.025f0, 60f0^2, 10f0, 6400f0, N)
+dtc = TimeStepScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, N)
 
 
 interim = propegate_camera_chain(camera_chain, st, dtc, metric, backend)
 
-res = render_output(interim, st, bckg_fp32, backend, 2)
+res = render_output(interim, st, bckg_fp32, backend, 30)
 

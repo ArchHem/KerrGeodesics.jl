@@ -49,14 +49,14 @@
         #This causes warp divergence, however, it _does_ terminate early warps. Our spatial structure means that nearby pixels are in nearby warps...
 
 
-        r2 = yield_r2(x0, x1, x2, x3, metric)
+        r = sqrt(yield_r2(x0, x1, x2, x3, metric))
         
         #use RK4, we move backwards.
-        dt = -get_dt(r2, dtcontrol)
+        dt = -get_dt(r, dtcontrol)
 
         dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3 = RK4step(x0, x1, x2, x3, v0, v1, v2, v3, metric, dt)
 
-        if r2 > dtcontrol.r_stop || dx0 > dtcontrol.redshift_stop
+        if r > dtcontrol.r_stop || dx0 > dtcontrol.redshift_stop
             break
         end
 
@@ -67,9 +67,9 @@
     end
     ϕ, θ = cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)
 
-    r2 = yield_r2(x0, x1, x2, x3, metric)
+    r = sqrt(yield_r2(x0, x1, x2, x3, metric))
     #use RK4, we move backwards.
-    dt = -get_dt(r2, dtcontrol)
+    dt = -get_dt(r, dtcontrol)
 
     dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3 = RK4step(x0, x1, x2, x3, v0, v1, v2, v3, metric, dt)
 

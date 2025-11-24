@@ -11,10 +11,6 @@ struct KerrMetric{T}
 end
 
 #This compues specialized, heuretical timesteps in the Kerr spacetime.
-#It uses the following heuretic:
-#If r2 > threshold, dt = min(2 * outer_scaling, max)
-#If r2 < threshold, dt = flat
-#To presevre continuity at the threshold, we enforce
 
 #Use kerr's papers on EH in KS coordinates;
 
@@ -28,21 +24,25 @@ end
 
 struct TimeStepScaler{T}
     max::T
-    flat::T
-    outer_scaling::T
-    threshold::T
+    event_horizon::T
+    a0::T
+    a1::T
+    a2::T
     redshift_stop::T
     r_stop::T
     maxtimesteps::Int
 end
 
-function TimeStepScaler(max::T, flat::T, threshold::T, redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
-    outer_scaling = flat/threshold
-    return TimeStepScaler{T}(max, flat, outer_scaling, threshold, redshift_stop, r_stop, maxtimesteps)
+function TimeStepScaler(max::T, metric::KerrMetric{T}, a0::T, a1::T, a2::T, redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
+    event_horizon = sqrt(metric.M^2-metric.a^2) + metric.M
+    return TimeStepScaler{T}(max, event_horizon, a0, a1, a2, redshift_stop, r_stop, maxtimesteps)
 end
 
-@inline function get_dt(r2::T, s::TimeStepScaler{T}) where T
-    dt = ifelse(r2 > s.threshold, min(s.max, s.outer_scaling * r2), min(s.max, s.flat))
+@inline function get_dt(r::T, s::TimeStepScaler{T}) where T
+
+    diff = r - s.event_horizon
+    dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
+    dt = min(dt_primal, s.max)
     return dt
 end
 
