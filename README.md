@@ -1,7 +1,15 @@
 # KerrGeodesics
 # Towards real-time visualization of the Kerr spacetime.
 
+![Demo](example_media/output_800x800_360frames_30fps.gif)
+
 [![Build Status](https://github.com/ArchHem/KerrGeodesics.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ArchHem/KerrGeodesics.jl/actions/workflows/CI.yml?query=branch%3Amain)
+
+# What is KerrGeodesics.jl?
+
+*KerrGeodesics.jl* is a package that aims to facilitiate realtime, and accurate, visualization of the Kerr spacetime. It is primary aimed for visualization and performance (i.e., for instance, time-stepping is based on heuretic), and not neccesiraly for general geodesic calculations, but it supports such in its API. 
+
+It support both CPU and GPU backends thorugh *KernelAbstractions.jl*, and there are plans for specific dispatches for improved CPU performance through *SIMD.jl* usage.
 
 # TODO's
 
