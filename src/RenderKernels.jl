@@ -134,7 +134,8 @@ end
     @Const(output::AbstractArray{T, 3}),
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}),
     @Const(tex_height::Int), 
-    @Const(tex_width::Int)
+    @Const(tex_width::Int); interpolant::AbstractInterpolant = NearestInterpolant()
+
     ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     Nearest-pixel interpolant that turns an array of returned cast angles and flag into an RGB array, writing it into an an array of shape
@@ -145,13 +146,13 @@ end
     this kernel will be launched with the kernel with blocks of size [V * MicroNWarps * H * MicroMWarps], i.e. a single block for each microtile.
 """
 
-@kernel unsafe_indices = true function nearest_render!(
+@kernel unsafe_indices = true function render_video!(
     frame_buffer::AbstractArray{RGB{T}, 3},
     @Const(texture::AbstractArray{RGB{T}, 2}),
     @Const(output::AbstractArray{T, 3}),
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}),
     @Const(tex_height::Int), 
-    @Const(tex_width::Int)
+    @Const(tex_width::Int), interpolant::NearestInterpolant
     ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
     
     g_index = @index(Global, Linear)
@@ -187,7 +188,7 @@ end
 """
     render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
     texture::AbstractArray{RGB{T}}, backend,  framerate::Int;
-    filename = nothing) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+    filename = nothing, interpolant::AbstractInterpolant = NearestInterpolant()) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
 
     Wrapper function around the nearest-pixel interpolant kernel that turns an array of returned cast angles and flag into an RGB array, writing it into an an array of shape
@@ -199,7 +200,7 @@ end
 """
 function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
     texture::AbstractArray{RGB{T}}, backend,  framerate::Int;
-    filename = nothing) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+    filename = nothing, interpolant::AbstractInterpolant = NearestInterpolant()) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     output_backend = KernelAbstractions.get_backend(output)
     blocksize = V * H * MicroMWarps * MicroNWarps
@@ -216,12 +217,12 @@ function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWa
     texture_device = adapt(backend, texture)
     total_threads = V * H * MicroNWarps * NBlocks * MicroMWarps * MBlocks * N_frames
     tex_height, tex_width = size(texture)
-    kernel! = nearest_render!(backend, blocksize)
+    kernel! = render_video!(backend, blocksize)
     kernel!(
         frame_buffer,
         texture_device,
         output,
-        batch, tex_height, tex_width;
+        batch, tex_height, tex_width, interpolant;
         ndrange = total_threads
     )
 
