@@ -23,3 +23,10 @@ It support both CPU and GPU backends thorugh *KernelAbstractions.jl*, and there 
 * Backed specific texture memory for the sampler (unlikely, its not the bottleneck)
 * Enzyme generated pixels/frames
 * Test CUDA
+
+# Literature and projects used
+
+* Hamiltonian EoM: https://iopscience.iop.org/article/10.3847/1538-4357/abdc28
+* Further EoM: https://iopscience.iop.org/article/10.3847/1538-4365/ac77ef/pdf
+* Integrator choices (reduced to just RK4 for now): https://iopscience.iop.org/article/10.3847/1538-4365/aac9ca/pdf?fbclid=IwAR0pORzJb6EvCVdTIWo32F6wxhdd3_eQE_-x8afe94Y8dY_2IH_NuNcPiD0
+* Camera tetrad: https://arxiv.org/pdf/1410.7775

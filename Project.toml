@@ -14,12 +14,12 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 VideoIO = "d6d074c3-1acf-5d4c-9a43-ef38773959a2"
 
 [compat]
-Random = "1.11.0"
 julia = "1.10"
 
 [extras]
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [targets]
-test = ["Test", "Enzyme"]
+test = ["Test", "Enzyme", "Random"]
