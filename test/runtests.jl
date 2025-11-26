@@ -63,21 +63,24 @@ end
 
     #test consistency of pixel mapping
 
-    NWarp = 20
-    MWarp = 80
+    NBlocks = 32
+    MBlocks = 64
+
+    NWarp = 4
+    MWarp = 2
     J = 4
     I = 8
     maxframes = 1000
 
-    st = SubStruct(I, J, NWarp, MWarp)
+    st = SubStruct(I, J, NWarp, MWarp, NBlocks, MBlocks)
 
     Random.seed!(1234)
-    i = rand(1:NWarp * I)
-    j = rand(1:MWarp * J)
+    i = rand(1:NWarp * I * NBlocks)
+    j = rand(1:MWarp * J * MBlocks)
     k = rand(1:maxframes)
-
+    
     warp_index, lane_index = KerrGeodesics.video_index_to_array_index(i, j, k, st)
-
+    
     i_n, j_n, k_n = KerrGeodesics.array_index_to_video_index(warp_index, lane_index, st)
 
     @test i_n == i
@@ -85,7 +88,7 @@ end
     @test k_n == k
 
     #backwards test 
-    maxwarp = NWarp * MWarp * maxframes
+    maxwarp = NWarp * MWarp * maxframes * NBlocks * MBlocks
     maxlane = I * J
 
     testlane = rand(1:maxlane)
