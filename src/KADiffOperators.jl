@@ -6,7 +6,7 @@
     @Const(state::AbstractArray{T}),
     @Const(metric::KerrMetric{T}), 
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
-    @Const(dtcontrol::TimeStepScaler{T})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+    @Const(dtcontrol::HorizonHeureticScaler{T}{T})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     KA Kernel that propegates an initial states using an uncodintional RK4 integrator, storing only the final valid value. 
 
@@ -15,7 +15,7 @@
     @Const(state::AbstractArray{T}),
     @Const(metric::KerrMetric{T}), 
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
-    @Const(dtcontrol::TimeStepScaler{T})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+    @Const(dtcontrol::HorizonHeureticScaler{T})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     g_index = @index(Global, Linear)
     chunk, lane = divrem(g_index - 1, V*H) .+ 1

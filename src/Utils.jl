@@ -1,7 +1,7 @@
 #CPU-bound function that integrates a single geodesic.
 
 """
-    integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::AbstractVector{T}, dtcontrol::TimeStepScaler{T},
+    integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::AbstractVector{T}, dtcontrol::HorizonHeureticScaler{T},
     metric::KerrMetric{T}; norm = T(-1), null = false) where {T}
 
     Debug-orineted function that integrates a single geodesic, and stores its state at every timestep into output_buffer of shape
@@ -10,7 +10,7 @@
 
     The function can normalize the initial input using the norm and null keyword arguments. 
 """
-function integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::AbstractVector{T}, dtcontrol::TimeStepScaler{T},
+function integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::AbstractVector{T}, dtcontrol::HorizonHeureticScaler{T},
     metric::KerrMetric{T}; norm = T(-1), null = false) where {T}
 
 

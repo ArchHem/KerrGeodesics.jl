@@ -2,7 +2,7 @@
     render_kernel!(output::AbstractArray{T},
         @Const(metric::KerrMetric{T}), 
         @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
-        @Const(dtcontrol::TimeStepScaler{T}), 
+        @Const(dtcontrol::HorizonHeureticScaler{T}), 
         @Const(camerachain::AbstractVector{PinHoleCamera{T}})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     Given an array of initical conditions in the (V*H, 8, N_warps) shaped array, propegate eah ray to its end state, 
@@ -16,7 +16,7 @@
 @kernel unsafe_indices = true function render_kernel!(output::AbstractArray{T},
     @Const(metric::KerrMetric{T}), 
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
-    @Const(dtcontrol::TimeStepScaler{T}), 
+    @Const(dtcontrol::HorizonHeureticScaler{T}), 
     @Const(camerachain::AbstractVector{PinHoleCamera{T}})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     #initalize the ray.
@@ -88,7 +88,7 @@ end
     propegate_camera_chain(
     camerachain::AbstractVector{PinHoleCamera{T}}, 
     batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
-    dtcontrol::TimeStepScaler{T},
+    dtcontrol::HorizonHeureticScaler{T},
     metric::KerrMetric{T}, backend
     ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
@@ -102,7 +102,7 @@ end
 function propegate_camera_chain(
     camerachain::AbstractVector{PinHoleCamera{T}}, 
     batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
-    dtcontrol::TimeStepScaler{T},
+    dtcontrol::HorizonHeureticScaler{T},
     metric::KerrMetric{T}, backend
     ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 

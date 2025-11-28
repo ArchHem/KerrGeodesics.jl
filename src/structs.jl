@@ -20,9 +20,9 @@ end
 
 #i.e. r^2 = 2*m^2 - a^2 + 2 m * sqrt(m^2 - a^2)
 
+abstract type AbstractHeureticStepScaler{T} end
 
-
-struct TimeStepScaler{T}
+struct HorizonHeureticScaler{T} <: AbstractHeureticStepScaler{T}
     max::T
     event_horizon::T
     a0::T
@@ -33,12 +33,12 @@ struct TimeStepScaler{T}
     maxtimesteps::Int
 end
 
-function TimeStepScaler(max::T, metric::KerrMetric{T}, a0::T, a1::T, a2::T, redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
+function HorizonHeureticScaler(max::T, metric::KerrMetric{T}, a0::T, a1::T, a2::T, redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
     event_horizon = sqrt(metric.M^2-metric.a^2) + metric.M
-    return TimeStepScaler{T}(max, event_horizon, a0, a1, a2, redshift_stop, r_stop, maxtimesteps)
+    return HorizonHeureticScaler{T}(max, event_horizon, a0, a1, a2, redshift_stop, r_stop, maxtimesteps)
 end
 
-@inline function get_dt(r::T, s::TimeStepScaler{T}) where T
+@inline function get_dt(r::T, s::HorizonHeureticScaler{T}) where T
 
     diff = r - s.event_horizon
     dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff

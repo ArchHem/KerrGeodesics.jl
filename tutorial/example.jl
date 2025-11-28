@@ -36,7 +36,7 @@ for (idx, θ) in enumerate(LinRange(0.f0, 2.f0 * Float32(π), n_frames))
 end
 
 N = 10000
-dtc = TimeStepScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, N)
+dtc = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, N)
 
 
 interim = propegate_camera_chain(camera_chain, st, dtc, metric, backend)
