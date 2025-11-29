@@ -218,10 +218,10 @@
 end
 
 """
-    calculate_differential(state::NTuple{N, T}, metric::KerrMetric{T}) where {N,T}
+    calculate_differential(state, metric::KerrMetric{T}) where {N,T}
     Convinence wrapper for the EoM RHS for tuples.
 """
-@inline function calculate_differential(state::NTuple{N, T}, metric::KerrMetric{T}) where {N,T}
+@inline function calculate_differential(state, metric::KerrMetric{T}) where {T}
     x0, x1, x2, x3, v0, v1, v2, v3 = state
     dstate = calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
     return dstate
@@ -248,6 +248,13 @@ end
 
     return r2
 
+end
+
+@inline function yield_r2(state, metric::KerrMetric{T}) where T
+    x0, x1, x2, x3, _, _, _, _ = state
+    r2 = yield_r2(x0, x1, x2, x3, metric)
+
+    return r2
 end
 
 """
