@@ -10,46 +10,12 @@ struct KerrMetric{T}
     a::T
 end
 
-#This compues specialized, heuretical timesteps in the Kerr spacetime.
-
-#Use kerr's papers on EH in KS coordinates;
-
-#r2 - 2mr + a^2 = 0 for the EH.
-
-#The outer horizon has r = sqrt(m^2-a^2) + m
-
-#i.e. r^2 = 2*m^2 - a^2 + 2 m * sqrt(m^2 - a^2)
-
-abstract type AbstractHeureticStepScaler{T} end
-
-struct HorizonHeureticScaler{T} <: AbstractHeureticStepScaler{T}
-    max::T
-    event_horizon::T
-    a0::T
-    a1::T
-    a2::T
-    redshift_stop::T
-    r_stop::T
-    maxtimesteps::Int
+struct StepResult{T}
+    state::StaticVector{8, T}
+    isterminated::Bool
 end
 
-function HorizonHeureticScaler(max::T, metric::KerrMetric{T}, a0::T, a1::T, a2::T, redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
-    event_horizon = sqrt(metric.M^2-metric.a^2) + metric.M
-    return HorizonHeureticScaler{T}(max, event_horizon, a0, a1, a2, redshift_stop, r_stop, maxtimesteps)
-end
-
-@inline function get_dt(r::T, s::HorizonHeureticScaler{T}) where T
-
-    diff = r - s.event_horizon
-    dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
-    dt = min(dt_primal, s.max)
-    return dt
-end
-
-struct SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
-
-end
-
-function SubStruct(V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks)
-    return SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}()
+function StepResult(state, status)
+    T = eltype(state)
+    return StepResult{T}(SVector{8, T}(state), status)
 end

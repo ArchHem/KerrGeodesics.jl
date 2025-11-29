@@ -17,8 +17,9 @@ function HorizonHeureticScaler(max::T, metric::KerrMetric{T}, a0::T, a1::T, a2::
 end
 
 @inline function get_dt(state, metric::KerrMetric{T}, s::HorizonHeureticScaler{T}) where T
+    @inbounds x0, x1, x2, x3, _, _, _, _ = state
     @fastmath begin
-        r = sqrt(yield_r2(state..., metric))
+        r = sqrt(yield_r2(x0, x1, x2, x3, metric))
         diff = r - s.event_horizon
         dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
         dt = min(dt_primal, s.max)
