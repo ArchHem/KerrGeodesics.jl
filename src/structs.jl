@@ -19,3 +19,6 @@ function StepResult(state, status)
     T = eltype(state)
     return StepResult{T}(SVector{8, T}(state), status)
 end
+
+state(x::StepResult) = x.state
+isterminated(x::StepResult) = x.isterminated

@@ -8,11 +8,11 @@ abstract type AbstractHeureticIntegrator <: AbstractCustomIntegrator end #uses s
 
 #concrete implementations
 
-struct RK4Heuretic{T} <: AbstractHeureticIntegrator
+struct RK4HorizonHeuretic{T} <: AbstractHeureticIntegrator
     metric::KerrMetric{T} 
     stepscaler::HorizonHeureticScaler{T}
 end
-struct RK2Heuretic{T} <: AbstractHeureticIntegrator
+struct RK2HorizonHeuretic{T} <: AbstractHeureticIntegrator
     metric::KerrMetric{T} 
     stepscaler::HorizonHeureticScaler{T}
 end
@@ -22,10 +22,13 @@ metric(x::AbstractHeureticIntegrator) = x.metric
 
 
 
-function geodesic_step(state, integrator::RK4Heuretic{T}) where T
+function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
+    dtcontrol = scaler(integrator)
     x0, x1, x2, x3, v0, v1, v2, v3 = state
-    dt = get_dt(state, metric(integrator), scaler(integrator))
-    @fastmath begin 
+    @fastmath begin
+        #we can reuse vars here
+        r = sqrt(yield_r2(x0, x1, x2, x3, metric(integrator)))
+        dt = get_dt(r, dtcontrol)
         dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
             calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
         dt_half = dt * T(0.5)
@@ -78,10 +81,52 @@ function geodesic_step(state, integrator::RK4Heuretic{T}) where T
         dv1 = renorm_6 * (dv1_1 + dv1_4) + renorm_3 * (dv1_2 + dv1_3)
         dv2 = renorm_6 * (dv2_1 + dv2_4) + renorm_3 * (dv2_2 + dv2_3)
         dv3 = renorm_6 * (dv3_1 + dv3_4) + renorm_3 * (dv3_2 + dv3_3)
-        newstate = @SVector [x0 + dt * dx0, x1 + dt * dx1, x2 + dt * dx2, x3 + dt * dx3,
-                            x0 + dt * dx0, x1 + dt * dx1, x2 + dt * dx2, x3 + dt * dx3]
+        dstate = @SVector [dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3]
+        newstate = @. state + dt * dstate
+        bval = r > dtcontrol.r_stop || dx0 > dtcontrol.redshift_stop
     end
     
+    res = StepResult(newstate, bval)
+    return res
+end
+
+function geodesic_step(state, integrator::RK2HorizonHeuretic{T}) where T
+    dtcontrol = scaler(integrator)
+    x0, x1, x2, x3, v0, v1, v2, v3 = state
+    @fastmath begin
+        #we can reuse vars here
+        r = sqrt(yield_r2(x0, x1, x2, x3, metric(integrator)))
+        dt = get_dt(r, dtcontrol)
+        dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
+            calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
+        dt_half = dt * T(0.5)
+        dx0_2, dx1_2, dx2_2, dx3_2, dv0_2, dv1_2, dv2_2, dv3_2 = 
+            calculate_differential(
+                x0 + dt_half * dx0_1,
+                x1 + dt_half * dx1_1,
+                x2 + dt_half * dx2_1,
+                x3 + dt_half * dx3_1,
+                v0 + dt_half * dv0_1,
+                v1 + dt_half * dv1_1,
+                v2 + dt_half * dv2_1,
+                v3 + dt_half * dv3_1,
+                metric
+            )
+        
+        
+        dx0 = dx0_2
+        dx1 = dx1_2
+        dx2 = dx2_2
+        dx3 = dx3_2
+        dv0 = dv0_2
+        dv1 = dv1_2
+        dv2 = dv2_2
+        dv3 = dv3_2
+        dstate = @SVector [dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3]
+        newstate = @. state + dt * dstate
+        bval = r > dtcontrol.r_stop || dx0 > dtcontrol.redshift_stop
+    end
     
-    return (dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3)
+    res = StepResult(newstate, bval)
+    return res
 end
