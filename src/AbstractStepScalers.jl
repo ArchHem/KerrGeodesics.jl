@@ -11,6 +11,9 @@ struct HorizonHeureticScaler{T} <: AbstractHeureticStepScaler{T}
     maxtimesteps::Int
 end
 
+redshift_limit(x::AbstractHeureticStepScaler) = x.redshift_stop
+maxtimesteps(x::AbstractHeureticStepScaler) = x.maxtimesteps
+
 function HorizonHeureticScaler(max::T, metric::KerrMetric{T}, a0::T, a1::T, a2::T, redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
     event_horizon = sqrt(metric.M^2-metric.a^2) + metric.M
     return HorizonHeureticScaler{T}(max, event_horizon, a0, a1, a2, redshift_stop, r_stop, maxtimesteps)
@@ -24,7 +27,7 @@ end
         dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
         dt = min(dt_primal, s.max)
     end
-    return dt
+    return -dt
 end
 
 @inline function get_dt(r, s::HorizonHeureticScaler{T}) where T
@@ -33,7 +36,7 @@ end
         dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
         dt = min(dt_primal, s.max)
     end
-    return dt
+    return -dt
 end
 
 

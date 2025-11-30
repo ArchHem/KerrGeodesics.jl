@@ -5,17 +5,19 @@ using KernelAbstractions, Adapt, LinearAlgebra, StaticArrays, Colors, Images, Vi
 
 include("./AlgebraicUtils.jl")
 include("./structs.jl")
+include("./PhysicsUtils.jl")
+include("./RenderStructs.jl")
 include("./AbstractStepScalers.jl")
 include("./AbstractIntegrators.jl") 
 include("./Interpolants.jl")
 include("./CameraUtils.jl")
 include("./GeodesicOps.jl")
-include("./Integrators.jl")
 include("./CameraFunctions.jl")
 include("./RenderKernels.jl")
 include("./Utils.jl")
 
 export KerrMetric, HorizonHeureticScaler, PinHoleCamera, 
-    SubStruct, ensemble_ODE_RK4!, propegate_camera_chain, 
-    render_output, PinHoleCamera, integrate_single_geodesic!, NearestInterpolant, BiLinearInterpolant
+    SubStruct, propegate_camera_chain, 
+    render_output, integrate_single_geodesic!, NearestInterpolant, BiLinearInterpolant,
+    RK4HorizonHeuretic, RK2HorizonHeuretic
 end

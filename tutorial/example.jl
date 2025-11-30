@@ -38,8 +38,8 @@ end
 N = 10000
 dtc = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, N)
 
+integrator = RK4HorizonHeuretic{Float32}(metric, dtc)
 
-interim = propegate_camera_chain(camera_chain, st, dtc, metric, backend)
+interim = propegate_camera_chain(camera_chain, st, integrator, backend)
 
 res = render_output(interim, st, bckg_fp32, backend, 30)
-

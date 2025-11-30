@@ -15,9 +15,8 @@ struct StepResult{T}
     isterminated::Bool
 end
 
-function StepResult(state, status)
-    T = eltype(state)
-    return StepResult{T}(SVector{8, T}(state), status)
+@inline function StepResult(state::SVector{8, T}, status::Bool) where T
+    return StepResult{T}(state, status)
 end
 
 state(x::StepResult) = x.state

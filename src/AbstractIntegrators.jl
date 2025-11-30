@@ -6,7 +6,7 @@ abstract type AbstractCustomIntegrator <: AbstractIntegratorBackend end #for all
 
 abstract type AbstractHeureticIntegrator <: AbstractCustomIntegrator end #uses some dt scaling heuretic
 
-#concrete implementations
+#concrete implementations: we need to check if abstract scaler will work on the GPU or not...
 
 struct RK4HorizonHeuretic{T} <: AbstractHeureticIntegrator
     metric::KerrMetric{T} 
@@ -20,7 +20,8 @@ end
 scaler(x::AbstractHeureticIntegrator) = x.stepscaler
 metric(x::AbstractHeureticIntegrator) = x.metric
 
-
+maxtimesteps(x::AbstractHeureticIntegrator) = maxtimesteps(scaler(x))
+redshift_limit(x::AbstractHeureticIntegrator) = redshift_limit(scaler(x))
 
 function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
     dtcontrol = scaler(integrator)
@@ -30,7 +31,7 @@ function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
         r = sqrt(yield_r2(x0, x1, x2, x3, metric(integrator)))
         dt = get_dt(r, dtcontrol)
         dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
-            calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
+            calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric(integrator))
         dt_half = dt * T(0.5)
         dx0_2, dx1_2, dx2_2, dx3_2, dv0_2, dv1_2, dv2_2, dv3_2 = 
             calculate_differential(
@@ -42,7 +43,7 @@ function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
                 v1 + dt_half * dv1_1,
                 v2 + dt_half * dv2_1,
                 v3 + dt_half * dv3_1,
-                metric
+                metric(integrator)
             )
 
         dx0_3, dx1_3, dx2_3, dx3_3, dv0_3, dv1_3, dv2_3, dv3_3 = 
@@ -55,7 +56,7 @@ function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
                 v1 + dt_half * dv1_2,
                 v2 + dt_half * dv2_2,
                 v3 + dt_half * dv3_2,
-                metric
+                metric(integrator)
             )
 
         dx0_4, dx1_4, dx2_4, dx3_4, dv0_4, dv1_4, dv2_4, dv3_4 = 
@@ -68,7 +69,7 @@ function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
                 v1 + dt * dv1_3,
                 v2 + dt * dv2_3,
                 v3 + dt * dv3_3,
-                metric
+                metric(integrator)
             )
         
         renorm_6 = 1 / T(6)
@@ -98,7 +99,7 @@ function geodesic_step(state, integrator::RK2HorizonHeuretic{T}) where T
         r = sqrt(yield_r2(x0, x1, x2, x3, metric(integrator)))
         dt = get_dt(r, dtcontrol)
         dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
-            calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
+            calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric(integrator))
         dt_half = dt * T(0.5)
         dx0_2, dx1_2, dx2_2, dx3_2, dv0_2, dv1_2, dv2_2, dv3_2 = 
             calculate_differential(
@@ -110,7 +111,7 @@ function geodesic_step(state, integrator::RK2HorizonHeuretic{T}) where T
                 v1 + dt_half * dv1_1,
                 v2 + dt_half * dv2_1,
                 v3 + dt_half * dv3_1,
-                metric
+                metric(integrator)
             )
         
         

@@ -49,7 +49,7 @@ end
     Given a 10-length represnetation (metric_tuple) of a symmetric 4x4 matrix A,
         calculates the matrix product A * v
 """
-@inline function mult_by_metric(metric_tuple, v) where {N, T}
+@inline function mult_by_metric(metric_tuple, v)
     u00, u10, u20, u30, u11, u21, u31, u22, u32, u33 = metric_tuple
     v0, v1, v2, v3 = v
 
@@ -80,7 +80,7 @@ end
             by scalar multiplying its v1, v2, v3 components. This is done via an EXACT fomrula for an arbitary metric, assuming that v0 is the timelike component.
             Please note that for such, one should set norm = 0
 """
-@inline function normalize_fourveloc(metric_tuple, v0::T, v1::T, v2::T, v3::T; norm = T(0), null = true)
+@inline function normalize_fourveloc(metric_tuple, v0::T, v1::T, v2::T, v3::T; norm = T(0), null = true) where T
     u00, u10, u20, u30, u11, u21, u31, u22, u32, u33 = metric_tuple
 
     if null
@@ -130,13 +130,13 @@ end
 
 
 """
-    yield_innerprod(metric_tuple::NTuple{N, T}, v, w) where {N,T}
+    yield_innerprod(metric_tuple, v, w)
 
     Calculates the generalized inner product m^ij v_i w_j where m^ij is assumed to be a symmetric 4x4 matrix, 
     stored in a trinagular format as a 10-tuple
 
 """
-@inline function yield_innerprod(metric_tuple, v, w) where {N,T}
+@inline function yield_innerprod(metric_tuple, v, w)
     @fastmath begin
         v0, v1, v2, v3 = v
         w0, w1, w2, w3 = mult_by_metric(metric_tuple, w)
@@ -149,14 +149,14 @@ end
 
 
 """
-    yield_determinant(metric_tuple) where {N, T}
+    yield_determinant(metric_tuple)
     Yields the the determinant of a 4x4 symmetric matrix, 
     stored as 10 tuple in tringular format.
 
     For the Kerr Metric, this is uniquely +/- 1 everywhere.
 
 """
-@inline function yield_determinant(metric_tuple) where {N, T}
+@inline function yield_determinant(metric_tuple)
     u00, u10, u20, u30, u11, u21, u31, u22, u32, u33 = metric_tuple
 
     @fastmath begin
