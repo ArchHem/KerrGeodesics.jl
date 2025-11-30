@@ -29,7 +29,7 @@ function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
     @fastmath begin
         #we can reuse vars here
         r = sqrt(yield_r2(x0, x1, x2, x3, metric(integrator)))
-        dt = get_dt(r, dtcontrol)
+        dt = -get_dt(r, dtcontrol)
         dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
             calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric(integrator))
         dt_half = dt * T(0.5)
@@ -97,7 +97,7 @@ function geodesic_step(state, integrator::RK2HorizonHeuretic{T}) where T
     @fastmath begin
         #we can reuse vars here
         r = sqrt(yield_r2(x0, x1, x2, x3, metric(integrator)))
-        dt = get_dt(r, dtcontrol)
+        dt = -get_dt(r, dtcontrol)
         dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
             calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric(integrator))
         dt_half = dt * T(0.5)

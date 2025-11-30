@@ -27,7 +27,7 @@ end
         dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
         dt = min(dt_primal, s.max)
     end
-    return -dt
+    return dt
 end
 
 @inline function get_dt(r, s::HorizonHeureticScaler{T}) where T
@@ -36,7 +36,7 @@ end
         dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
         dt = min(dt_primal, s.max)
     end
-    return -dt
+    return dt
 end
 
 
