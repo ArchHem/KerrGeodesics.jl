@@ -11,7 +11,7 @@ struct KerrMetric{T}
 end
 
 struct StepResult{T}
-    state::StaticVector{8, T}
+    state::SVector{8, T}
     isterminated::Bool
 end
 
