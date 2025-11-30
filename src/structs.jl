@@ -12,12 +12,15 @@ end
 
 struct StepResult{T}
     state::SVector{8, T}
-    isterminated::Bool
+    is_escaped::Bool
+    is_redshifted::Bool
 end
 
-@inline function StepResult(state::SVector{8, T}, status::Bool) where T
-    return StepResult{T}(state, status)
+@inline function StepResult(state::SVector{8, T}, is_escaped::Bool, is_redshifted::Bool) where T
+    return StepResult{T}(state, is_escaped, is_redshifted)
 end
 
 state(x::StepResult) = x.state
-isterminated(x::StepResult) = x.isterminated
+isredshifted(x::StepResult) = x.is_redshifted
+isescaped(x::StepResult) = x.is_escaped
+isterminated(x::StepResult) = isescaped(x) || isredshifted(x)

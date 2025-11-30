@@ -41,25 +41,21 @@
 
     gstate = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
 
-    flag = T(1)
+    redshift_status = false
     @fastmath for t in 1:N
 
         nextval = geodesic_step(gstate, integrator)
 
         if isterminated(nextval)
+            redshift_status = isredshifted(nextval)
             break
         end
-        gstate = state(nextval)  # Fixed this too
+        gstate = state(nextval)
     end
     
     ϕ, θ = cast_to_sphere(gstate)
-    dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3 = calculate_differential(gstate, local_metric)  # Use local_metric
 
-    if dx0 > redshift_limit(integrator)
-        flag = T(0)
-    end
-    
-    output[lane, 1, chunk] = flag
+    output[lane, 1, chunk] = redshift_status ? T(0) : T(1)
     output[lane, 2, chunk] = ϕ
     output[lane, 3, chunk] = θ
 

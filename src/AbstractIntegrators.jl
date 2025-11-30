@@ -84,10 +84,11 @@ function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
         dv3 = renorm_6 * (dv3_1 + dv3_4) + renorm_3 * (dv3_2 + dv3_3)
         dstate = @SVector [dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3]
         newstate = @. state + dt * dstate
-        bval = r > dtcontrol.r_stop || dx0 > dtcontrol.redshift_stop
+        escap = r > dtcontrol.r_stop 
+        redshift = dx0 > dtcontrol.redshift_stop
     end
     
-    res = StepResult(newstate, bval)
+    res = StepResult(newstate, escap, redshift)
     return res
 end
 
@@ -125,9 +126,10 @@ function geodesic_step(state, integrator::RK2HorizonHeuretic{T}) where T
         dv3 = dv3_2
         dstate = @SVector [dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3]
         newstate = @. state + dt * dstate
-        bval = r > dtcontrol.r_stop || dx0 > dtcontrol.redshift_stop
+        escap = r > dtcontrol.r_stop 
+        redshift = dx0 > dtcontrol.redshift_stop
     end
     
-    res = StepResult(newstate, bval)
+    res = StepResult(newstate, escap, redshift)
     return res
 end
