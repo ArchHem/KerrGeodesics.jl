@@ -35,11 +35,10 @@ for (idx, θ) in enumerate(LinRange(0.f0, 2.f0 * Float32(π), n_frames))
     camera_chain[idx] = PinHoleCamera(position, veloc, pointing, upwards, metric, angle_x, angle_y, st)
 end
 
-N = 10000
-dtc = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, N)
+dtc = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, 10000)
 
+integrator = RK2Heuretic(metric, dtc)
 
-interim = propegate_camera_chain(camera_chain, st, dtc, metric, backend)
+interim = propegate_camera_chain(camera_chain, st, integrator, backend)
 
 res = render_output(interim, st, bckg_fp32, backend, 30)
-

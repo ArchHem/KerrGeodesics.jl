@@ -14,12 +14,10 @@
         indicating an event horizon.
 """
 @kernel unsafe_indices = true function render_kernel!(output::AbstractArray{T},
-    @Const(metric::KerrMetric{T}), 
+    @Const(integrator::AbstractCustomIntegrator),
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
-    @Const(dtcontrol::HorizonHeureticScaler{T}), 
     @Const(camerachain::AbstractVector{PinHoleCamera{T}})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
-    #initalize the ray.
     g_index = @index(Global, Linear)
     chunk, lane = divrem(g_index - 1, V*H) .+ 1
 
@@ -29,58 +27,37 @@
 
     x0, x1, x2, x3 = local_camera.position
 
-    #shift so that they hit "center" of the pixel
     v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i - T(0.5)) / (V * MicroNWarps * NBlocks), 
         T(j - T(0.5)) / (H * MicroMWarps * MBlocks), 
         local_camera)
 
-    #normalization steps (this could be wrapped into the came constructor, TODO)
-    #renorm such that the raised velocity u0 = 1 for ALL rays
     metric_tpl = local_camera.inverse_metric_tpl
     w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
 
     v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
 
-    
-    N = dtcontrol.maxtimesteps
+    local_metric = metric(integrator)  # Changed variable name
+    N = max_timesteps(integrator)
 
-    flag = T(1)
+    gstate = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
+
+    redshift_status = false
     @fastmath for t in 1:N
-        #This causes warp divergence, however, it _does_ terminate early warps. Our spatial structure means that nearby pixels are in nearby warps...
 
+        nextval = geodesic_step(gstate, integrator)
 
-        r = sqrt(yield_r2(x0, x1, x2, x3, metric))
-        
-        #use RK4, we move backwards.
-        dt = -get_dt(r, dtcontrol)
-
-        dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3 = RK4step(x0, x1, x2, x3, v0, v1, v2, v3, metric, dt)
-
-        if r > dtcontrol.r_stop || dx0 > dtcontrol.redshift_stop
+        if isterminated(nextval)
+            redshift_status = isredshifted(nextval)
             break
         end
-
-        x0, x1, x2, x3, v0, v1, v2, v3 = x0 + dt*dx0, x1 + dt*dx1, x2 + dt*dx2, x3 + dt*dx3,
-                                            v0 + dt*dv0, v1 + dt*dv1, v2 + dt*dv2, v3 + dt*dv3
-        
-
+        gstate = state(nextval)
     end
-    ϕ, θ = cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)
+    
+    ϕ, θ = cast_to_sphere(gstate)
 
-    r = sqrt(yield_r2(x0, x1, x2, x3, metric))
-    #use RK4, we move backwards.
-    dt = -get_dt(r, dtcontrol)
-
-    dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3 = RK4step(x0, x1, x2, x3, v0, v1, v2, v3, metric, dt)
-
-    if dx0 > dtcontrol.redshift_stop
-        flag = T(0)
-    end
-    #output stores a flag, and the casted ray positions.
-    output[lane, 1, chunk] = flag
+    output[lane, 1, chunk] = redshift_status ? T(0) : T(1)
     output[lane, 2, chunk] = ϕ
     output[lane, 3, chunk] = θ
-
 
 end
 
@@ -102,8 +79,8 @@ end
 function propegate_camera_chain(
     camerachain::AbstractVector{PinHoleCamera{T}}, 
     batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
-    dtcontrol::HorizonHeureticScaler{T},
-    metric::KerrMetric{T}, backend
+    integrator::AbstractCustomIntegrator,
+    backend
     ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     N_frames = length(camerachain)
@@ -116,9 +93,8 @@ function propegate_camera_chain(
 
     kernel!(
         output,
-        metric,
+        integrator,
         batch,
-        dtcontrol,
         camerachain_device;
         ndrange = N_total_warps * V * H
     )
