@@ -1,135 +1,204 @@
+"""
+    AbstractIntegratorBackend
+
+Top-level abstract type for all geodesic integrators in KerrGeodesics.jl.
+"""
 abstract type AbstractIntegratorBackend end
 
+"""
+    AbstractDEIntegrator <: AbstractIntegratorBackend
+
+Abstract type for integrators from DifferentialEquations.jl or similar packages.
+NOT USED YET.
+"""
 abstract type AbstractDEIntegrator <: AbstractIntegratorBackend end
 
-abstract type AbstractCustomIntegrator <: AbstractIntegratorBackend end #for all of our custom needs
+"""
+    AbstractCustomIntegrator <: AbstractIntegratorBackend
 
-abstract type AbstractHeureticIntegrator <: AbstractCustomIntegrator end #uses some dt scaling heuretic
+Abstract type for custom-built integrators optimized for GPU execution and 
+specific geodesic integration needs in curved spacetime.
 
-#concrete implementations: we need to check if abstract scaler will work on the GPU or not...
+# Required Interface
 
-struct RK4HorizonHeuretic{T} <: AbstractHeureticIntegrator
-    metric::KerrMetric{T} 
-    stepscaler::HorizonHeureticScaler{T}
-end
-struct RK2HorizonHeuretic{T} <: AbstractHeureticIntegrator
-    metric::KerrMetric{T} 
-    stepscaler::HorizonHeureticScaler{T}
-end
+All concrete subtypes `x<:AbstractCustomIntegrator` MUST implement:
 
+- `max_timesteps(x)::Int` - Maximum number of integration steps before forced termination
+- `geodesic_step(state::SVector{8,T}, x) -> StepResult{T}` - Advances geodesic by one timestep
+
+where `state = [x0, x1, x2, x3, v0, v1, v2, v3]` represents position and lowered four-velocity.
+
+# Performance Notes
+
+Implementations should be allocation-free and GPU-compatible (isbitstype structs only).
+"""
+abstract type AbstractCustomIntegrator <: AbstractIntegratorBackend end
+
+"""
+    AbstractHeureticIntegrator <: AbstractCustomIntegrator
+
+Integrators that use heuristic-based adaptive timestep control via an 
+`AbstractHeureticStepScaler`. The timestep and termination conditions are 
+delegated to the associated step scaler.
+
+# Unified API
+
+All `AbstractHeureticIntegrator` subtypes provide:
+- `scaler(x)` - Returns the step scaler
+- `metric(x)` - Returns the spacetime metric
+- `max_timesteps(x)` - Delegates to `max_timesteps(scaler(x))`
+"""
+abstract type AbstractHeureticIntegrator <: AbstractCustomIntegrator end
+
+# Unified API implementations
 scaler(x::AbstractHeureticIntegrator) = x.stepscaler
 metric(x::AbstractHeureticIntegrator) = x.metric
+max_timesteps(x::AbstractHeureticIntegrator) = max_timesteps(scaler(x))
 
-maxtimesteps(x::AbstractHeureticIntegrator) = maxtimesteps(scaler(x))
-redshift_limit(x::AbstractHeureticIntegrator) = redshift_limit(scaler(x))
+"""
+    RK4Heuretic{T, U<:AbstractHeureticStepScaler} <: AbstractHeureticIntegrator
 
-function geodesic_step(state, integrator::RK4HorizonHeuretic{T}) where T
+Fourth-order Runge-Kutta integrator with heuristic adaptive timestep control.
+Uses the classical RK4 method with weights [1/6, 1/3, 1/3, 1/6].
+
+# Fields
+- `metric::KerrMetric{T}` - The Kerr spacetime metric
+- `stepscaler::U` - Step size controller and termination condition provider
+
+# Constructor
+    RK4Heuretic(metric::KerrMetric{T}, stepscaler::AbstractHeureticStepScaler{T})
+# Example
+```julia
+metric = KerrMetric(1.0f0, 0.8f0)
+scaler = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, 10000)
+integrator = RK4Heuretic(metric, scaler)
+```
+"""
+struct RK4Heuretic{T, U <: AbstractHeureticStepScaler} <: AbstractHeureticIntegrator
+    metric::KerrMetric{T} 
+    stepscaler::U
+end
+
+"""
+    RK2Heuretic{T, U<:AbstractHeureticStepScaler} <: AbstractHeureticIntegrator
+
+Second-order Runge-Kutta (midpoint) integrator with heuristic adaptive timestep control.
+Faster but less accurate than RK4; useful for quick previews or less demanding scenarios.
+
+# Fields
+- `metric::KerrMetric{T}` - metric instance
+- `stepscaler::U` - Step size controller and termination condition provider
+
+# Constructor
+    RK2Heuretic(metric::KerrMetric{T}, stepscaler::AbstractHeureticStepScaler{T})
+
+# Example
+```julia
+metric = KerrMetric(1.0f0, 0.8f0)
+scaler = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, 10000)
+integrator = RK2Heuretic(metric, scaler)
+```
+"""
+struct RK2Heuretic{T, U <: AbstractHeureticStepScaler} <: AbstractHeureticIntegrator
+    metric::KerrMetric{T}
+    stepscaler::U
+end
+
+# Convenience constructors with type inference
+function RK4Heuretic(metric::KerrMetric{T}, stepscaler::U) where {T, U <: AbstractHeureticStepScaler{T}}
+    return RK4Heuretic{T, U}(metric, stepscaler)
+end
+
+function RK2Heuretic(metric::KerrMetric{T}, stepscaler::U) where {T, U <: AbstractHeureticStepScaler{T}}
+    return RK2Heuretic{T, U}(metric, stepscaler)
+end
+
+"""
+    geodesic_step(state::SVector{8,T}, integrator::RK4Heuretic{T}) -> StepResult{T}
+
+Advances the geodesic state by one RK4 timestep.
+
+# Arguments
+- `state::SVector{8,T}` - Current state `[x0, x1, x2, x3, v0, v1, v2, v3]`
+- `integrator::RK4Heuretic{T}` - RK4 integrator with metric and step scaler
+
+# Returns
+`StepResult{T}` containing:
+- `state::SVector{8,T}` - New state after timestep
+- `is_escaped::Bool` - Whether ray has escaped to infinity
+- `is_redshifted::Bool` - Whether ray has crossed event horizon
+
+# Implementation Details
+The timestep `dt` and cached quantities are obtained from `get_dt(state, metric, scaler)`.
+Termination conditions are evaluated using the final derivative estimate and cached values.
+"""
+function geodesic_step(state, integrator::RK4Heuretic{T}) where T
     dtcontrol = scaler(integrator)
-    x0, x1, x2, x3, v0, v1, v2, v3 = state
+    lmetric = metric(integrator)
     @fastmath begin
-        #we can reuse vars here
-        r = sqrt(yield_r2(x0, x1, x2, x3, metric(integrator)))
-        dt = -get_dt(r, dtcontrol)
-        dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
-            calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric(integrator))
+        dt, cache = get_dt(state, lmetric, dtcontrol)
+        
+        dstate_1 = calculate_differential(state, lmetric)
         dt_half = dt * T(0.5)
-        dx0_2, dx1_2, dx2_2, dx3_2, dv0_2, dv1_2, dv2_2, dv3_2 = 
-            calculate_differential(
-                x0 + dt_half * dx0_1,
-                x1 + dt_half * dx1_1,
-                x2 + dt_half * dx2_1,
-                x3 + dt_half * dx3_1,
-                v0 + dt_half * dv0_1,
-                v1 + dt_half * dv1_1,
-                v2 + dt_half * dv2_1,
-                v3 + dt_half * dv3_1,
-                metric(integrator)
-            )
-
-        dx0_3, dx1_3, dx2_3, dx3_3, dv0_3, dv1_3, dv2_3, dv3_3 = 
-            calculate_differential(
-                x0 + dt_half * dx0_2,
-                x1 + dt_half * dx1_2,
-                x2 + dt_half * dx2_2,
-                x3 + dt_half * dx3_2,
-                v0 + dt_half * dv0_2,
-                v1 + dt_half * dv1_2,
-                v2 + dt_half * dv2_2,
-                v3 + dt_half * dv3_2,
-                metric(integrator)
-            )
-
-        dx0_4, dx1_4, dx2_4, dx3_4, dv0_4, dv1_4, dv2_4, dv3_4 = 
-            calculate_differential(
-                x0 + dt * dx0_3,
-                x1 + dt * dx1_3,
-                x2 + dt * dx2_3,
-                x3 + dt * dx3_3,
-                v0 + dt * dv0_3,
-                v1 + dt * dv1_3,
-                v2 + dt * dv2_3,
-                v3 + dt * dv3_3,
-                metric(integrator)
-            )
+        
+        input_2 = @. state + dt_half * dstate_1
+        dstate_2 = calculate_differential(input_2, lmetric)
+        
+        input_3 = @. state + dt_half * dstate_2
+        dstate_3 = calculate_differential(input_3, lmetric)
+        
+        input_4 = @. state + dt * dstate_3
+        dstate_4 = calculate_differential(input_4, lmetric)
         
         renorm_6 = 1 / T(6)
         renorm_3 = 1 / T(3)
-        dx0 = renorm_6 * (dx0_1 + dx0_4) + renorm_3 * (dx0_2 + dx0_3)
-        dx1 = renorm_6 * (dx1_1 + dx1_4) + renorm_3 * (dx1_2 + dx1_3)
-        dx2 = renorm_6 * (dx2_1 + dx2_4) + renorm_3 * (dx2_2 + dx2_3)
-        dx3 = renorm_6 * (dx3_1 + dx3_4) + renorm_3 * (dx3_2 + dx3_3)
-        dv0 = renorm_6 * (dv0_1 + dv0_4) + renorm_3 * (dv0_2 + dv0_3)
-        dv1 = renorm_6 * (dv1_1 + dv1_4) + renorm_3 * (dv1_2 + dv1_3)
-        dv2 = renorm_6 * (dv2_1 + dv2_4) + renorm_3 * (dv2_2 + dv2_3)
-        dv3 = renorm_6 * (dv3_1 + dv3_4) + renorm_3 * (dv3_2 + dv3_3)
-        dstate = @SVector [dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3]
+        dstate = @. renorm_6 * (dstate_1 + dstate_4) + renorm_3 * (dstate_2 + dstate_3)
         newstate = @. state + dt * dstate
-        escap = r > dtcontrol.r_stop 
-        redshift = dx0 > dtcontrol.redshift_stop
+        
+        escap = is_escaped(state, dstate, cache, dtcontrol)
+        redshift = is_redshifted(state, dstate, cache, dtcontrol)
     end
     
-    res = StepResult(newstate, escap, redshift)
-    return res
+    return StepResult(newstate, escap, redshift)
 end
 
-function geodesic_step(state, integrator::RK2HorizonHeuretic{T}) where T
+"""
+    geodesic_step(state::SVector{8,T}, integrator::RK2Heuretic{T}) -> StepResult{T}
+
+Advances the geodesic state by one RK2 (midpoint method) timestep.
+
+# Arguments
+- `state::SVector{8,T}` - Current state `[x0, x1, x2, x3, v0, v1, v2, v3]`
+- `integrator::RK2Heuretic{T}` - RK2 integrator with metric and step scaler
+
+# Returns
+`StepResult{T}` containing:
+- `state::SVector{8,T}` - New state after timestep
+- `is_escaped::Bool` - Whether ray has escaped to infinity
+- `is_redshifted::Bool` - Whether ray has crossed event horizon
+
+# Implementation Details
+Uses only two derivative evaluations (at current point and midpoint) for speed.
+Termination conditions use the midpoint derivative `dstate_2` as the best available estimate.
+"""
+function geodesic_step(state, integrator::RK2Heuretic{T}) where T
     dtcontrol = scaler(integrator)
-    x0, x1, x2, x3, v0, v1, v2, v3 = state
+    lmetric = metric(integrator)
+    
     @fastmath begin
-        #we can reuse vars here
-        r = sqrt(yield_r2(x0, x1, x2, x3, metric(integrator)))
-        dt = -get_dt(r, dtcontrol)
-        dx0_1, dx1_1, dx2_1, dx3_1, dv0_1, dv1_1, dv2_1, dv3_1 = 
-            calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric(integrator))
+        dt, cache = get_dt(state, lmetric, dtcontrol)
+        
+        dstate_1 = calculate_differential(state, lmetric)
         dt_half = dt * T(0.5)
-        dx0_2, dx1_2, dx2_2, dx3_2, dv0_2, dv1_2, dv2_2, dv3_2 = 
-            calculate_differential(
-                x0 + dt_half * dx0_1,
-                x1 + dt_half * dx1_1,
-                x2 + dt_half * dx2_1,
-                x3 + dt_half * dx3_1,
-                v0 + dt_half * dv0_1,
-                v1 + dt_half * dv1_1,
-                v2 + dt_half * dv2_1,
-                v3 + dt_half * dv3_1,
-                metric(integrator)
-            )
         
+        input_2 = @. state + dt_half * dstate_1
+        dstate_2 = calculate_differential(input_2, lmetric)
         
-        dx0 = dx0_2
-        dx1 = dx1_2
-        dx2 = dx2_2
-        dx3 = dx3_2
-        dv0 = dv0_2
-        dv1 = dv1_2
-        dv2 = dv2_2
-        dv3 = dv3_2
-        dstate = @SVector [dx0, dx1, dx2, dx3, dv0, dv1, dv2, dv3]
-        newstate = @. state + dt * dstate
-        escap = r > dtcontrol.r_stop 
-        redshift = dx0 > dtcontrol.redshift_stop
+        newstate = @. state + dt * dstate_2
+        
+        escap = is_escaped(state, dstate_2, cache, dtcontrol)
+        redshift = is_redshifted(state, dstate_2, cache, dtcontrol)
     end
     
-    res = StepResult(newstate, escap, redshift)
-    return res
+    return StepResult(newstate, escap, redshift)
 end

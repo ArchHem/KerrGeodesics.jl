@@ -37,7 +37,7 @@
     v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
 
     local_metric = metric(integrator)  # Changed variable name
-    N = maxtimesteps(integrator)
+    N = max_timesteps(integrator)
 
     gstate = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
 

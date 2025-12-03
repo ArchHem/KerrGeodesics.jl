@@ -218,7 +218,7 @@
 end
 
 """
-    calculate_differential(state, metric::KerrMetric{T}) where {N,T}
+    calculate_differential(state, metric::KerrMetric{T}) where {T}
     Convinence wrapper for the EoM RHS for tuples.
 """
 @inline function calculate_differential(state, metric::KerrMetric{T}) where {T}

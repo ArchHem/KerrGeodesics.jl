@@ -11,7 +11,7 @@
 function integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::AbstractVector{T}, 
     integrator::AbstractCustomIntegrator; norm = T(-1), null = false) where {T}
 
-    N = maxtimesteps(integrator)
+    N = max_timesteps(integrator)
     @assert N == size(output_buffer, 2)
 
     x0, x1, x2, x3, v0, v1, v2, v3 = state
