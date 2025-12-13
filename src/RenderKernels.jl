@@ -14,7 +14,7 @@
         indicating an event horizon.
 """
 @kernel unsafe_indices = true function render_kernel!(output::AbstractArray{T},
-    @Const(integrator::AbstractCustomIntegrator),
+    @Const(integrator::AbstractStateLessCustomIntegrator),
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
     @Const(camerachain::AbstractVector{PinHoleCamera{T}})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
@@ -79,7 +79,7 @@ end
 function propegate_camera_chain(
     camerachain::AbstractVector{PinHoleCamera{T}}, 
     batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
-    integrator::AbstractCustomIntegrator,
+    integrator::AbstractStateLessCustomIntegrator,
     backend
     ) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 

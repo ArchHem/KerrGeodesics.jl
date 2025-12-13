@@ -6,14 +6,14 @@ Top-level abstract type for all geodesic integrators in KerrGeodesics.jl.
 abstract type AbstractIntegratorBackend end
 
 """
-    AbstractCustomIntegrator <: AbstractIntegratorBackend
+    AbstractStateLessCustomIntegrator <: AbstractIntegratorBackend
 
 Abstract type for custom-built integrators optimized for GPU execution and 
 specific geodesic integration needs in curved spacetime.
 
 # Required Interface
 
-All concrete subtypes `x<:AbstractCustomIntegrator` MUST implement:
+All concrete subtypes `x<:AbstractStateLessCustomIntegrator` MUST implement:
 
 - `max_timesteps(x)::Int` - Maximum number of integration steps before forced termination
 - `geodesic_step(state::SVector{8,T}, x) -> StepResult{T}` - Advances geodesic by one timestep
@@ -24,10 +24,10 @@ where `state = [x0, x1, x2, x3, v0, v1, v2, v3]` represents position and lowered
 
 Implementations should be allocation-free and GPU-compatible (isbitstype structs only).
 """
-abstract type AbstractCustomIntegrator <: AbstractIntegratorBackend end
+abstract type AbstractStateLessCustomIntegrator <: AbstractIntegratorBackend end
 
 """
-    AbstractHeureticIntegrator <: AbstractCustomIntegrator
+    AbstractHeureticIntegrator <: AbstractStateLessCustomIntegrator
 
 Integrators that use heuristic-based adaptive timestep control via an 
 `AbstractHeureticStepScaler`. The timestep and termination conditions are 
@@ -40,7 +40,7 @@ All `AbstractHeureticIntegrator` subtypes provide:
 - `metric(x)` - Returns the spacetime metric
 - `max_timesteps(x)` - Delegates to `max_timesteps(scaler(x))`
 """
-abstract type AbstractHeureticIntegrator <: AbstractCustomIntegrator end
+abstract type AbstractHeureticIntegrator <: AbstractStateLessCustomIntegrator end
 
 # Unified API implementations
 scaler(x::AbstractHeureticIntegrator) = x.stepscaler
