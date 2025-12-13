@@ -37,7 +37,8 @@ end
 
 dtc = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, 10000)
 
-integrator = RK2Heuretic(metric, dtc)
+#integrator = RK2Heuretic(metric, dtc)
+integrator = AdamMoultonHeuretic(metric, dtc, 4)
 
 interim = propegate_camera_chain(camera_chain, st, integrator, backend)
 

@@ -6,14 +6,6 @@ Top-level abstract type for all geodesic integrators in KerrGeodesics.jl.
 abstract type AbstractIntegratorBackend end
 
 """
-    AbstractDEIntegrator <: AbstractIntegratorBackend
-
-Abstract type for integrators from DifferentialEquations.jl or similar packages.
-NOT USED YET.
-"""
-abstract type AbstractDEIntegrator <: AbstractIntegratorBackend end
-
-"""
     AbstractCustomIntegrator <: AbstractIntegratorBackend
 
 Abstract type for custom-built integrators optimized for GPU execution and 
@@ -104,6 +96,33 @@ struct RK2Heuretic{T, U <: AbstractHeureticStepScaler} <: AbstractHeureticIntegr
     stepscaler::U
 end
 
+"""
+    AdamMoultonHeuretic{T, U<:AbstractHeureticStepScaler, N} <: AbstractHeureticIntegrator
+
+Second-order implicit Adam-Moulton scheme (sympletic). Preserves the Hamiltonian at order O(dt^3).
+
+In order to be GPU compatible, this integrator carries out a fixed number (N) fixed-point 
+
+# Fields
+- `metric::KerrMetric{T}` - metric instance
+- `stepscaler::U` - Step size controller and termination condition provider
+
+# Constructor
+    AdamMoultonHeuretic(metric::KerrMetric{T}, stepscaler::AbstractHeureticStepScaler{T}, N::Int)
+
+# Example
+```julia
+metric = KerrMetric(1.0f0, 0.8f0)
+scaler = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, 10000)
+integrator = AdamMoultonHeuretic(metric, scaler)
+```
+"""
+
+struct AdamMoultonHeuretic{T, U <: AbstractHeureticStepScaler, N} <: AbstractHeureticIntegrator
+    metric::KerrMetric{T}
+    stepscaler::U
+end
+
 # Convenience constructors with type inference
 function RK4Heuretic(metric::KerrMetric{T}, stepscaler::U) where {T, U <: AbstractHeureticStepScaler{T}}
     return RK4Heuretic{T, U}(metric, stepscaler)
@@ -111,6 +130,10 @@ end
 
 function RK2Heuretic(metric::KerrMetric{T}, stepscaler::U) where {T, U <: AbstractHeureticStepScaler{T}}
     return RK2Heuretic{T, U}(metric, stepscaler)
+end
+
+function AdamMoultonHeuretic(metric::KerrMetric{T}, stepscaler::U, N::Int) where {T, U <: AbstractHeureticStepScaler{T}}
+    return AdamMoultonHeuretic{T, U, N}(metric, stepscaler)
 end
 
 """
@@ -201,4 +224,63 @@ function geodesic_step(state, integrator::RK2Heuretic{T}) where T
     end
     
     return StepResult(newstate, escap, redshift)
+end
+
+"""
+    geodesic_step(state::SVector{8,T}, integrator::AdamMoultonHeuretic{T,U,N}) -> StepResult{T}
+
+Advances the geodesic state by one Adam-Moluton timestep.
+
+# Arguments
+- `state::SVector{8,T}` - Current state `[x0, x1, x2, x3, v0, v1, v2, v3]`
+- `integrator::AdamMolutonHeuretic{T,U,N}` - Adam-Moluton integrator with metric and step scaler, using a fixed number (N) iterations
+
+# Returns
+`StepResult{T}` containing:
+- `state::SVector{8,T}` - New state after timestep
+- `is_escaped::Bool` - Whether ray has escaped to infinity
+- `is_redshifted::Bool` - Whether ray has crossed event horizon
+
+# Implementation Details
+The timestep `dt` and cached quantities are obtained from `get_dt(state, metric, scaler)`.
+Termination conditions are evaluated using the final derivative estimate and cached values.
+"""
+@generated function geodesic_step(state::SVector{8,T}, integrator::AdamMoultonHeuretic{T,U,N}) where {T,U,N}
+    quote
+        dtcontrol = scaler(integrator)
+        lmetric = metric(integrator)
+        
+        @fastmath begin
+            dt, cache = get_dt(state, lmetric, dtcontrol)
+            
+            
+            dstate_n = calculate_differential(state, lmetric)
+            
+            u_current = @. state + dt * dstate_n
+            
+            #could do the usual way of appending expressions
+            #Can this cause issues near the horizon? I dont think so, but worth keeping in mind.
+            Base.Cartesian.@nexprs $N i -> begin
+                
+                midpoint = @. (state + u_current) * T(0.5)
+                
+                
+                dstate_mid = calculate_differential(midpoint, lmetric)
+                
+                
+                u_current = @. state + dt * dstate_mid
+            end
+            
+            newstate = u_current
+            
+            
+            final_midpoint = @. (state + newstate) * T(0.5)
+            dstate_final = calculate_differential(final_midpoint, lmetric)
+            
+            escap = is_escaped(newstate, dstate_final, cache, dtcontrol)
+            redshift = is_redshifted(newstate, dstate_final, cache, dtcontrol)
+        end
+        
+        return StepResult(newstate, escap, redshift)
+    end
 end
