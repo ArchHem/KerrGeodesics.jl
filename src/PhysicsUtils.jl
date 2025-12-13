@@ -182,3 +182,23 @@ end
 
     return det_val
 end
+
+"""
+    Calculates the Hamiltonian, H = g^ij(x_i) u_i u_j given the scalarized state (four-position and lowered four-velocity) and the metric.
+"""
+@inline function yield_hamiltonian(x0, x1, x2, x3, v0, v1, v2, v3, metric::KerrMetric{T}) where T
+    m = yield_inverse_metric(x0, x1, x2, x3, metric)
+    H = T(0.5) * yield_innerprod(m, v0, v1, v2, v3)
+    return H
+end
+
+
+"""
+    Calculates the Hamiltonian, H = g^ij(x_i) u_i u_j given the vector form of the state (four-position and lowered four-velocity) and the metric.
+"""
+@inline function yield_hamiltonian(state, metric::KerrMetric{T}) where T
+    x0, x1, x2, x3, v0, v1, v2, v3 = state
+    m = yield_inverse_metric(x0, x1, x2, x3, metric)
+    H = T(0.5) * yield_innerprod(m, v0, v1, v2, v3)
+    return H
+end
