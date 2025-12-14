@@ -19,11 +19,13 @@ function integrate_single_geodesic!(output_buffer::AbstractArray{T}, start_state
 
     local_metric = metric(integrator)
     metric_tpl = yield_inverse_metric(x0, x1, x2, x3, local_metric)
-    v0, v1, v2, v3 = normalize_fourveloc(metric_tpl, v0, v1, v2, v3, norm = norm, null = null)
-    metric_tpl = yield_inverse_metric(x0, x1, x2, x3, local_metric)
+    #Normalize raised four-veloc's temporal part to 1 (assumed by integrators)
     w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
-
     v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
+
+    #AFTER this, norm the ray to be null.
+    v0, v1, v2, v3 = normalize_fourveloc(metric_tpl, v0, v1, v2, v3, norm = norm, null = null)
+    
 
     gstate = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
 
