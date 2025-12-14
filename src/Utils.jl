@@ -7,14 +7,15 @@
     [8, N_timesteps].
 
     The function can normalize the initial input using the norm and null keyword arguments. 
+    Returns the last index written by the integrator.
 """
-function integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::AbstractVector{T}, 
+function integrate_single_geodesic!(output_buffer::AbstractArray{T}, start_state::AbstractVector{T}, 
     integrator::AbstractStateLessCustomIntegrator; norm = T(-1), null = false) where {T}
 
     N = max_timesteps(integrator)
     @assert N == size(output_buffer, 2)
 
-    x0, x1, x2, x3, v0, v1, v2, v3 = state
+    x0, x1, x2, x3, v0, v1, v2, v3 = start_state
 
     local_metric = metric(integrator)
     metric_tpl = yield_inverse_metric(x0, x1, x2, x3, local_metric)
@@ -26,6 +27,8 @@ function integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::Abst
 
     gstate = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
 
+    last_index = N
+    isr = false
     @fastmath for t in 1:N
         # Store current state
         output_buffer[1, t] = gstate[1]
@@ -51,6 +54,8 @@ function integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::Abst
             output_buffer[6, t:end] .= gstate[6]
             output_buffer[7, t:end] .= gstate[7]
             output_buffer[8, t:end] .= gstate[8]
+            last_index = t
+            isr = isredshifted(nextval)
             break
         end
 
@@ -58,5 +63,5 @@ function integrate_single_geodesic!(output_buffer::AbstractArray{T}, state::Abst
         gstate = state(nextval)
     end
 
-    return nothing
+    return last_index, isr
 end
