@@ -4,11 +4,11 @@ using GLMakie
 
 a = 0.5f0
 const metric = KerrMetric{Float32}(1.0f0, a)
-start_state = @SVector [0.0f0, 5.0f0, 1.0f0, 2.0f0, -1f0, 1.0f0, 0.f0, 0.0f0]
+start_state = @SVector [0.0f0, 2.0f0, 0.0f0, 0.0f0, -0.1f0, 0.0f0, 1.f0, 1.0f0]
 N_timesteps = 1000
 dtc = HorizonHeureticScaler(0.5f0, metric, 0.001f0, 0.025f0, 0.025f0, 15f0, 60f0, N_timesteps)
 
-integrator = RK2Heuretic(metric, dtc)
+integrator = RK4Heuretic(metric, dtc)
 buffer = zeros(Float32, 8, N_timesteps)
 
 li, isr = integrate_single_geodesic!(buffer, start_state, integrator, norm = 0.0f0, null = true)
