@@ -8,6 +8,7 @@ const test_states = CalibrationExt.test_states
 const test_metric = CalibrationExt.test_metric
 const test_dtc = CalibrationExt.test_dtc
 const N_timesteps = CalibrationExt.N_timesteps
+const constant_timesteps = 80000
 
 const test_dtc_constant = HorizonHeureticScaler(
     test_dtc.max,
@@ -17,7 +18,7 @@ const test_dtc_constant = HorizonHeureticScaler(
     0.0f0,
     test_dtc.redshift_stop,
     test_dtc.r_stop,
-    N_timesteps
+    constant_timesteps
 )
 
 function prep_state(start_state, integrator)
@@ -32,7 +33,7 @@ function prep_state(start_state, integrator)
 end
 
 function compute_hamiltonian_drift(integrator, start_state)
-    buffer = zeros(Float32, 8, N_timesteps)
+    buffer = zeros(Float32, 8, KerrGeodesics.scaler(integrator).maxtimesteps)
     prepared_state = prep_state(start_state, integrator)
     li, isr = KerrGeodesics.integrate_single_geodesic!(buffer, prepared_state, integrator, norm = 0.0f0, null = true, do_norm = false)
     Hs = map(x -> KerrGeodesics.yield_hamiltonian(x, test_metric), eachcol(@view buffer[:, 1:li]))
