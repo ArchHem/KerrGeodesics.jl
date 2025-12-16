@@ -1,41 +1,43 @@
-include("./example_states.jl")
-using LinearAlgebra, GLMakie, Printf
+using GLMakie, NonlinearSolve
+using LinearAlgebra, Printf, StaticArrays
+using KerrGeodesics
 
-#test how close an Adam-Moulton step is to the "true" implicit midstep is.
+const CalibrationExt = Base.get_extension(KerrGeodesics, :CalibrationExt)
+
 
 #function to get the state to normalized 0-ray state.
 function prep_state(start_state, integrator)
     x0, x1, x2, x3, v0, v1, v2, v3 = start_state
-
-    local_metric = metric(integrator)
-    metric_tpl = yield_inverse_metric(x0, x1, x2, x3, local_metric)
+    T = typeof(x0)
+    local_metric = KerrGeodesics.metric(integrator)
+    metric_tpl = KerrGeodesics.yield_inverse_metric(x0, x1, x2, x3, local_metric)
     #Normalize raised four-veloc's temporal part to 1 (assumed by integrators)
-    w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
+    w0, w1, w2, w3 = KerrGeodesics.mult_by_metric(metric_tpl, (v0, v1, v2, v3))
     v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
 
     #AFTER this, norm the ray to be null.
-    v0, v1, v2, v3 = normalize_fourveloc(metric_tpl, v0, v1, v2, v3, norm = norm, null = null)
+    v0, v1, v2, v3 = KerrGeodesics.normalize_fourveloc(metric_tpl, v0, v1, v2, v3, norm = T(0), null = true)
+
+    return @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
 end
 
-function solve_implicit_midpoint_precise(state, dt::T, metric_instance; tol=1e-14, max_iter=200) where T
-    dstate_initial = KerrGeodesics.calculate_differential(state, metric_instance)
-    u_current = @. state + dt * dstate_initial
-    
-    for i in 1:max_iter
-        midpoint = (state + u_current) * T(0.5)
+function solve_implicit_midpoint_precise(state, dt::T, metric_instance; tol=1e-14) where T
+    function residual(u, p)
+        midpoint = (state .+ u) .* T(0.5)
         dstate_mid = KerrGeodesics.calculate_differential(midpoint, metric_instance)
-        u_next = @. state + dt * dstate_mid
-        diff = norm(u_next - u_current)
-        if diff < tol
-            return u_next
-        end
-        u_current = u_next
+        return u .- state .- dt .* dstate_mid
     end
-    @warn "Ground truth solver did not converge to tolerance $tol"
-    return u_current
+    
+    dstate_initial = KerrGeodesics.calculate_differential(state, metric_instance)
+    u_initial = state .+ dt .* dstate_initial
+    
+    prob = NonlinearProblem(residual, u_initial)
+    sol = solve(prob, SimpleNewtonRaphson(), abstol=tol)
+    
+    return sol.u
 end
 
-function run_adam_moulton_convergence_test(di = test_states, metric = test_metric, dtc = test_dtc)
+function run_adam_moulton_convergence_test(di = CalibrationExt.test_states, metric = CalibrationExt.test_metric, dtc = CalibrationExt.test_dtc)
     N_values = 1:12
     local_keys = collect(keys(di))
     num_states = length(local_keys)
@@ -52,11 +54,11 @@ function run_adam_moulton_convergence_test(di = test_states, metric = test_metri
         for n in N_values
             integrator = AdamMoultonHeuretic(metric, dtc, n)
 
-            gstate = local_state
+            gstate = prep_state(local_state, integrator)
             
-            dt_ref, _ = KerrGeodesics.get_dt(local_state, metric, dtc)
+            dt_ref, _ = KerrGeodesics.get_dt(gstate, metric, dtc)
             
-            truth_state = solve_implicit_midpoint_precise(local_state, dt_ref, metric, tol=Float32(1e-14))
+            truth_state = solve_implicit_midpoint_precise(gstate, dt_ref, metric, tol=Float32(1e-14))
             
             nextval = KerrGeodesics.geodesic_step(gstate, integrator)
             predicted_state = KerrGeodesics.state(nextval)

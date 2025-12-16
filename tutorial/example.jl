@@ -1,5 +1,4 @@
-include("../src/KerrGeodesics.jl")
-using .KerrGeodesics, KernelAbstractions, Metal, Images
+using KerrGeodesics, KernelAbstractions, Metal, Images
 
 backend = MetalBackend()
 texture_path = joinpath(pwd(), "example_cs", "QUASI_CS.png")

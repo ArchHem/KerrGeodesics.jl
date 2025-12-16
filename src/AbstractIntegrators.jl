@@ -99,9 +99,9 @@ end
 """
     AdamMoultonHeuretic{T, U<:AbstractHeureticStepScaler, N} <: AbstractHeureticIntegrator
 
-Second-order implicit Adam-Moulton scheme (sympletic). Preserves the Hamiltonian at order O(dt^3).
+Second-order implicit Adam-Moulton scheme. Note that it is NOT sympletic and calibration shows that it only improved over RK2 near the horizon.
 
-In order to be GPU compatible, this integrator carries out a fixed number (N) fixed-point 
+In order to be GPU compatible, this integrator carries out a fixed number (N) fixed-point iterations and performs no error checks. 
 
 # Fields
 - `metric::KerrMetric{T}` - metric instance
