@@ -41,4 +41,6 @@ integrator = AdamMoultonHeuretic(metric, dtc, 4)
 
 interim = propegate_camera_chain(camera_chain, st, integrator, backend)
 
-res = render_output(interim, st, bckg_fp32, backend, 30)
+frames = render_frames(interim, st, bckg_fp32, backend)
+
+write_video(frames, framerate = 30, )

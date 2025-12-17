@@ -104,7 +104,7 @@ function propegate_camera_chain(
 end
 
 """
-    nearest_render!(
+    render_video!(
     frame_buffer::AbstractArray{RGB{T}, 3},
     @Const(texture::AbstractArray{RGB{T}, 2}),
     @Const(output::AbstractArray{T, 3}),
@@ -174,9 +174,8 @@ end
     [V * MicroNWarps, H * MicroMWarps], which form the frame of shape [V * MicroNWarps * NBlocks, H * MicroMWarps * MBlocks]. Note that 
     this kernel will be launched with the kernel with blocks of size [V * MicroNWarps * H * MicroMWarps], i.e. a single block for each microtile.
 """
-function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
-    texture::AbstractArray{RGB{T}}, backend,  framerate::Int;
-    filename = nothing, interpolant::AbstractInterpolant = NearestInterpolant()) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
+function render_frames(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}, 
+    texture::AbstractArray{RGB{T}}, backend, interpolant::AbstractInterpolant = NearestInterpolant()) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
     output_backend = KernelAbstractions.get_backend(output)
     blocksize = V * H * MicroMWarps * MicroNWarps
@@ -203,18 +202,29 @@ function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWa
     )
 
     KernelAbstractions.synchronize(backend)
-    frame_buffer_cpu = Array(frame_buffer)
+    
+    return frame_buffer
 
+end
+
+function write_video(frame_buffer; framerate = 30, filename = nothing, codec = "libx264", file_path = pwd())
+    I, J, K = size(frame_buffer)
+    backend = get_backend(frame_buffer)
+    #transfer to CPU
+    frame_buffer_cpu = Array(frame_buffer)
+    KernelAbstractions.synchronize(backend)
     if isnothing(filename)
         filename = "output_$(I)x$(J)_$(K)frames_$(framerate)fps.mp4"
     end
+
+    full_path = joinpath(file_path, filename)
     
     writer = open_video_out(
-        filename,
+        full_path,
         RGB{N0f8},
         (I, J);
         framerate = framerate,
-        codec_name = "libx264",
+        codec_name = codec,
         encoder_options = (crf=23, preset="medium")
     )
     
@@ -225,6 +235,5 @@ function render_output(output::AbstractArray{T}, batch::SubStruct{V, H, MicroNWa
     
     close_video_out!(writer)
     
-    return frame_buffer_cpu
-
+    return nothing
 end

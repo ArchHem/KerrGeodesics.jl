@@ -284,3 +284,5 @@ Termination conditions are evaluated using the final derivative estimate and cac
         return StepResult(newstate, escap, redshift)
     end
 end
+
+abstract type CachedCustomIntegrator <: AbstractIntegratorBackend end
