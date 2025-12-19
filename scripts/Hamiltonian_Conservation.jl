@@ -1,4 +1,4 @@
-using GLMakie, NonlinearSolve
+using GLMakie, NonlinearSolve, BenchmarkTools #load everything for ext
 using LinearAlgebra, Printf, StaticArrays
 using KerrGeodesics
 
@@ -100,3 +100,4 @@ Legend(fig[1:2, 4], [LineElement(color = color_map[k], linewidth = 2) for k in s
 Label(fig[0, :], "Hamiltonian Conservation: Adaptive vs Constant Timestep", fontsize = 24, font = :bold)
 
 display(fig)
+save("exhibits/hamiltonian_conservation.png", fig, dpi = 600)

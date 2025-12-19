@@ -1,4 +1,4 @@
-using GLMakie, NonlinearSolve, Interpolations
+using GLMakie, NonlinearSolve, Interpolations, BenchmarkTools
 using LinearAlgebra, Printf, StaticArrays
 using KerrGeodesics
 
@@ -99,3 +99,4 @@ Legend(fig[1, 4], [LineElement(color = color_map[k], linewidth = 2) for k in sta
 Label(fig[0, :], "Solution Difference: Adaptive vs Constant Timestep", fontsize = 24, font = :bold)
 
 display(fig)
+save("exhibits/solution_diff.png", fig, dpi = 600)

@@ -1,4 +1,4 @@
-using GLMakie, NonlinearSolve, Interpolations
+using GLMakie, NonlinearSolve, Interpolations, BenchmarkTools
 using LinearAlgebra, Printf, StaticArrays
 using KerrGeodesics
 
@@ -135,3 +135,4 @@ Label(fig[2, 0], "y-coordinate", rotation = π/2, fontsize = 16)
 Label(fig[3, 0], "z-coordinate", rotation = π/2, fontsize = 16)
 
 display(fig)
+save("exhibits/coordinates_diff.png", fig, dpi = 600)

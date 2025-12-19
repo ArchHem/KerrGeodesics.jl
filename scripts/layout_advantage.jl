@@ -3,7 +3,7 @@ using Statistics, Printf, Colors, Images
 
 backend = MetalBackend()
 
-a = 0.5f0
+a = 0.85f0
 metric = KerrMetric{Float32}(1.0f0, a)
 dtc = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, 10000)
 
@@ -64,6 +64,7 @@ layouts = [
     ("Larger Hierarchical\n(8×4, 4×4, 32×64)", SubStruct(8, 4, 4, 4, 32, 64)),
     ("Column-major\n(32×1, 4×1, 8x1024)", SubStruct(32, 1, 4, 1, 8, 1024)),
     ("Square tiles\n(16×16, 1×1, 64×64)", SubStruct(16, 16, 1, 1, 64, 64)),
+    ("Large tiles\n(32x8, 1x1, 32x128)", SubStruct(32, 8, 1, 1, 32, 128))
 ]
 
 integrators = [
@@ -110,7 +111,7 @@ ax1 = GLMakie.Axis(fig[1, 1],
            xticklabelrotation = π/6)
 
 barplot!(ax1, 1:length(layout_names), rk2_times, 
-         color = :skyblue)
+         color = :palegreen)
 
 ax2 = GLMakie.Axis(fig[1, 2],
            xlabel = "Memory Layout",
@@ -120,11 +121,11 @@ ax2 = GLMakie.Axis(fig[1, 2],
            xticklabelrotation = π/6)
 
 barplot!(ax2, 1:length(layout_names), rk2_speedup, 
-         color = :skyblue)
+         color = :palegreen)
 
 hlines!(ax2, [1.0], color = :gray, linestyle = :dash, linewidth = 2)
 
-Label(fig[0, :], "Memory Layout Performance Comparison - RK2 - Metal Backend", 
+Label(fig[0, :], "Memory Layout Performance Comparison - RK2 - Metal Backend, a = $(round(metric.a,digits = 2))", 
       fontsize = 20, font = :bold)
 
 display(fig)
@@ -137,3 +138,4 @@ for (idx, r) in enumerate(rk2_results)
     @printf("  %-35s: %6.3f μs/pixel (%.2fx)\n", 
             replace(r.layout, "\n" => " "), r.time_per_pixel, speedup)
 end
+save("exhibits/layout_comparison.png", fig, dpi = 600)

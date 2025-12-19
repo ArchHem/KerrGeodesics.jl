@@ -1,4 +1,4 @@
-using GLMakie, NonlinearSolve
+using GLMakie, NonlinearSolve, BenchmarkTools
 using LinearAlgebra, Printf, StaticArrays
 using KerrGeodesics
 
@@ -102,3 +102,4 @@ end
 
 fig = run_adam_moulton_convergence_test()
 display(fig)
+save("exhibits/adam_moulton_order.png", fig, dpi = 600)
