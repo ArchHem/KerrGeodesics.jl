@@ -284,5 +284,26 @@ Termination conditions are evaluated using the final derivative estimate and cac
         return StepResult(newstate, escap, redshift)
     end
 end
+"""
+    AbstractStateFullCustomIntegrator <: AbstractIntegratorBackend
 
-abstract type CachedCustomIntegrator <: AbstractIntegratorBackend end
+Abstract type for custom-built integrators optimized for GPU execution and 
+specific geodesic integration needs in curved spacetime, that make use of caching.
+
+# Required Interface
+
+All concrete subtypes `x<:AbstractStateLessCustomIntegrator` MUST implement:
+
+- `max_timesteps(x)::Int` - Maximum number of integration steps before forced termination
+- `geodesic_step(state::SVector{N,T}, x, current_cache) -> StepResult{T}, cache` - Advances geodesic by one timestep, given a cache.
+- `geodesic_step(state::SVector{N,T}, x, current_cache::Nothing) -> StepResult{T}, cache` - Initial geodesic step.
+
+where `state = [x0, x1, x2, x3, v0, v1, v2, v3]` represents position and lowered four-velocity.
+
+# Performance Notes
+
+Implementations should be allocation-free and GPU-compatible (isbitstype structs only). The behaviour of the "cache" is left as an implementation detail, 
+but it MUST be stack allocated and type infereble for Adapt.jl
+
+"""
+abstract type AbstractStateFullCustomIntegrator <: AbstractIntegratorBackend end
