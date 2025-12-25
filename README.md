@@ -57,7 +57,7 @@ Since the API for sympletic integrators is still being built, the investigation 
 
 As part of the project, we also developed a GPU compatible set of implicit integrators (even though the Kerr geodesics are unlikely to be stiff). To reduce warp divergence, such are implemented using fixed-point iterations that are unrolled for a fixed number of iterations, forgoing convergence checks for GPU-optimized execution. An example of such an integrator is the Adam-Moulton implicit integrator, which we can parametrize by the number of fixed-point iterations N at compile time.
 
-Exploration shows that for N >= 4 iterations, there is virtually no more improvement in the true implicit value for any of our sampled states and reaches the limits of _fp32_ precision.
+Exploration shows that for N >= 4 iterations, there is virtually no more improvement in the true implicit value for any of our sampled states (compared against a solver in *NonLinearSolve.jl*) and reaches the limits of _fp32_ precision.
 
 ![AM_conv](exhibits/adam_moulton_order.png)
 
@@ -65,16 +65,16 @@ Exploration shows that for N >= 4 iterations, there is virtually no more improve
 
 # TODO's
 
-* Better spacial coherence (reorder warp tiles to morton-like order inside the image frame, hopefully will cause less stalls) DONE
-* Improve camera abstraction (pass a SubStruct object to the constructor function) DONE
-* Better timestepping heuretics/calibration
+* Better spacial coherence (reorder warp tiles to morton-like order inside the image frame, hopefully will cause less stalls) - Done, clear, if small, effect on benchmarks vs column-major.
+* Improve camera abstraction (pass a SubStruct object to the constructor function) - Done.
+* Better timestepping heuretics/calibration - Semi-done. API implemented for such.
 
 # Far-shot TODOs
 
-* Pre-render kernel sampler rays
-* Backed specific texture memory for the sampler (unlikely, its not the bottleneck)
-* Enzyme generated pixels/frames
-* Test CUDA
+* Pre-render kernel sampler rays for improved warp coherence
+* Backend specific texture memory for the sampler (unlikely, its not the bottleneck)
+* Enzyme generated pixels/frames - use autodifferentation over camera params + 4-velocity to generate interpolated rays and their termination condion.
+* Test CUDA and other backend
 
 # Literature and projects used
 
