@@ -123,6 +123,33 @@ struct AdamMoultonHeuretic{T, U <: AbstractHeureticStepScaler, N} <: AbstractHeu
     stepscaler::U
 end
 
+"""
+    AdamMoultonExpandedHeuretic{T, U<:AbstractHeureticStepScaler, N} <: AbstractHeureticIntegrator
+
+Second-order implicit Adam-Moulton scheme. Uses duplication of the Hamiltonain system to achieve 
+
+In order to be GPU compatible, this integrator carries out a fixed number (N) fixed-point iterations and performs no error checks. 
+
+# Fields
+- `metric::KerrMetric{T}` - metric instance
+- `stepscaler::U` - Step size controller and termination condition provider
+
+# Constructor
+    AdamMoultonExpandedHeuretic(metric::KerrMetric{T}, stepscaler::AbstractHeureticStepScaler{T}, N::Int)
+
+# Example
+```julia
+metric = KerrMetric(1.0f0, 0.8f0)
+scaler = HorizonHeureticScaler(0.5f0, metric, 0.02f0, 0.05f0, 0.025f0, 15f0, 60f0, 10000)
+integrator = AdamMoultonExpandedHeuretic(metric, scaler)
+```
+"""
+
+struct AdamMoultonExpandedHeuretic{T, U <: AbstractHeureticStepScaler, N} <: AbstractHeureticIntegrator
+    metric::KerrMetric{T}
+    stepscaler::U
+end
+
 # Convenience constructors with type inference
 function RK4Heuretic(metric::KerrMetric{T}, stepscaler::U) where {T, U <: AbstractHeureticStepScaler{T}}
     return RK4Heuretic{T, U}(metric, stepscaler)
@@ -134,6 +161,10 @@ end
 
 function AdamMoultonHeuretic(metric::KerrMetric{T}, stepscaler::U, N::Int) where {T, U <: AbstractHeureticStepScaler{T}}
     return AdamMoultonHeuretic{T, U, N}(metric, stepscaler)
+end
+
+function AdamMoultonExpandedHeuretic(metric::KerrMetric{T}, stepscaler::U, N::Int) where {T, U <: AbstractHeureticStepScaler{T}}
+    return AdamMoultonExpandedHeuretic{T, U, N}(metric, stepscaler)
 end
 
 """

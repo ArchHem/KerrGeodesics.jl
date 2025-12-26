@@ -1,7 +1,7 @@
 """
     All members, x<:AbstractHeureticStepScaler{T} must implement:
     
-    get_dt(state, metric, x) -> (T, cache) where cache is type-stable, non-heap-allocated
+    get_dt(state, input_cache, metric, x) -> (T, cache) where cache is type-stable, non-heap-allocated. Input cache is returned by calculate_differential_and_geom
     is_redshifted(state, dstate, cache, x)::Bool
     is_escaped(state, dstate, cache, x)::Bool
     max_timesteps(x)::Int
@@ -40,14 +40,12 @@ where `r` is the Boyer-Lindquist radial coordinate and `rₕ` is the event horiz
 - **Redshifted**: `v^0 > redshift_stop` - Ray's temporal component indicates horizon crossing
 
 The redshift condition detects when a null ray's time component becomes anomalously 
-large, signaling it has fallen past the event horizon (where it would be infinitely 
-redshifted to external observers).
+large, signaling it has gotten near the event horizon and is undergoing a significant shift.
 
 # Constructor
     HorizonHeureticScaler(max::T, metric::KerrMetric{T}, a0::T, a1::T, a2::T, 
                           redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
 
-Automatically computes the event horizon radius from the metric parameters.
 """
 struct HorizonHeureticScaler{T} <: AbstractHeureticStepScaler{T}
     max::T
@@ -69,10 +67,9 @@ end
     return s.maxtimesteps
 end
 
-@inline function get_dt(state, metric::KerrMetric{T}, s::HorizonHeureticScaler{T}) where T
-    @inbounds x0, x1, x2, x3 = state[1], state[2], state[3], state[4]
+@inline function get_dt(state, input_cache, metric::KerrMetric{T}, s::HorizonHeureticScaler{T}) where T
+    r = input_cache
     @fastmath begin
-        r = sqrt(yield_r2(x0, x1, x2, x3, metric))
         diff = r - s.event_horizon
         dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
         dt = min(dt_primal, s.max)

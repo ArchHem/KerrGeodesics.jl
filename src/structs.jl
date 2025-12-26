@@ -10,7 +10,9 @@ struct KerrMetric{T}
     a::T
 end
 
-struct StepResult{T}
+abstract type AbstractStepResult{T} end
+
+struct StepResult{T} <: AbstractStepResult{T}
     state::SVector{8, T}
     is_escaped::Bool
     is_redshifted::Bool
@@ -20,7 +22,15 @@ end
 #    return StepResult{T}(state, is_escaped, is_redshifted)
 #end
 
-state(x::StepResult) = x.state
-isredshifted(x::StepResult) = x.is_redshifted
-isescaped(x::StepResult) = x.is_escaped
-isterminated(x::StepResult) = isescaped(x) || isredshifted(x)
+struct DuplicatedStepResult{T} <: AbstractStepResult{T}
+    state::SVector{16, T}
+    is_escaped::Bool
+    is_redshifted::Bool
+end
+
+length(x::AbstractStepResult) = length(x.state)
+
+state(x::AbstractStepResult) = x.state
+isredshifted(x::AbstractStepResult) = x.is_redshifted
+isescaped(x::AbstractStepResult) = x.is_escaped
+isterminated(x::AbstractStepResult) = isescaped(x) || isredshifted(x)
