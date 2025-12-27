@@ -451,7 +451,7 @@ end
 """
 @inline function calculate_differential_and_geom(state, metric::KerrMetric{T}) where {T}
     x0, x1, x2, x3, v0, v1, v2, v3 = state
-    dstate, cache = calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
+    dstate, cache = calculate_differential_and_geom(x0, x1, x2, x3, v0, v1, v2, v3, metric)
     return (dstate, cache)
 end
 

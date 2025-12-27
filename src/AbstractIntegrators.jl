@@ -17,6 +17,7 @@ All concrete subtypes `x<:AbstractStateLessCustomIntegrator` MUST implement:
 
 - `max_timesteps(x)::Int` - Maximum number of integration steps before forced termination
 - `geodesic_step(state::SVector{8,T}, x) -> StepResult{T}` - Advances geodesic by one timestep
+- 'initialize_state(state::SVector{8},T}, x, inverse_metric; kwargs) -> SVector{N, T} - May involve things like noormalization, scaling raised components, etc.
 
 where `state = [x0, x1, x2, x3, v0, v1, v2, v3]` represents position and lowered four-velocity.
 
@@ -167,6 +168,29 @@ function AdamMoultonExpandedHeuretic(metric::KerrMetric{T}, stepscaler::U, N::In
     return AdamMoultonExpandedHeuretic{T, U, N}(metric, stepscaler)
 end
 
+#default behaviour for non-split state
+function initialize_state(state, integrator::AbstractHeureticIntegrator, inverse_metric; norm_raised = true)
+    if norm_raised
+        x0, x1, x2, x3, v0, v1, v2, v3 = state
+        w0, w1, w2, w3 = mult_by_metric(inverse_metric, (v0, v1, v2, v3))
+
+        v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
+        return @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
+    end
+    return state
+end
+
+function initialize_state(state, integrator::AdamMoultonExpandedHeuretic, inverse_metric; norm_raised = true)
+    x0, x1, x2, x3, v0, v1, v2, v3 = state
+    if norm_raised
+        w0, w1, w2, w3 = mult_by_metric(inverse_metric, (v0, v1, v2, v3))
+
+        v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
+        return @SVector [x0, x1, x2, x3, v0, v1, v2, v3, x0, x1, x2, x3, v0, v1, v2, v3]
+    end
+    return @SVector [x0, x1, x2, x3, v0, v1, v2, v3, x0, x1, x2, x3, v0, v1, v2, v3]
+end
+
 """
     geodesic_step(state::SVector{8,T}, integrator::RK4Heuretic{T}) -> StepResult{T}
 
@@ -190,9 +214,10 @@ function geodesic_step(state, integrator::RK4Heuretic{T}) where T
     dtcontrol = scaler(integrator)
     lmetric = metric(integrator)
     @fastmath begin
-        dt, cache = get_dt(state, lmetric, dtcontrol)
+        dstate_1, geom_cache = calculate_differential_and_geom(state, lmetric)
+
+        dt, cache = get_dt(state, geom_cache, lmetric, dtcontrol)
         
-        dstate_1 = calculate_differential(state, lmetric)
         dt_half = dt * T(0.5)
         
         input_2 = @. state + dt_half * dstate_1
@@ -207,10 +232,10 @@ function geodesic_step(state, integrator::RK4Heuretic{T}) where T
         renorm_6 = 1 / T(6)
         renorm_3 = 1 / T(3)
         dstate = @. renorm_6 * (dstate_1 + dstate_4) + renorm_3 * (dstate_2 + dstate_3)
-        newstate = @. state + dt * dstate
         
         escap = is_escaped(state, dstate, cache, dtcontrol)
         redshift = is_redshifted(state, dstate, cache, dtcontrol)
+        newstate = @. state + dt * dstate
     end
     
     return StepResult(newstate, escap, redshift)
@@ -240,9 +265,9 @@ function geodesic_step(state, integrator::RK2Heuretic{T}) where T
     lmetric = metric(integrator)
     
     @fastmath begin
-        dt, cache = get_dt(state, lmetric, dtcontrol)
+        dstate_1, geom_cache = calculate_differential_and_geom(state, lmetric)
+        dt, cache = get_dt(state, geom_cache, lmetric, dtcontrol)
         
-        dstate_1 = calculate_differential(state, lmetric)
         dt_half = dt * T(0.5)
         
         input_2 = @. state + dt_half * dstate_1
@@ -282,10 +307,8 @@ Termination conditions are evaluated using the final derivative estimate and cac
         lmetric = metric(integrator)
         
         @fastmath begin
-            dt, cache = get_dt(state, lmetric, dtcontrol)
-            
-            
-            dstate_n = calculate_differential(state, lmetric)
+            dstate_n, geom_cache = calculate_differential_and_geom(state, lmetric)
+            dt, cache = get_dt(state, geom_cache, lmetric, dtcontrol)
             
             u_current = @. state + dt * dstate_n
             
@@ -338,3 +361,5 @@ but it MUST be stack allocated and type infereble for Adapt.jl
 
 """
 abstract type AbstractStateFullCustomIntegrator <: AbstractIntegratorBackend end
+
+#WIP

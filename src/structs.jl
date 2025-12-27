@@ -28,9 +28,13 @@ struct DuplicatedStepResult{T} <: AbstractStepResult{T}
     is_redshifted::Bool
 end
 
-length(x::AbstractStepResult) = length(x.state)
+state_length(x::AbstractStepResult) = length(x.state)
 
-state(x::AbstractStepResult) = x.state
+state(x::StepResult) = x.state
+#for duplicated systems, return the first state as the physical truth.
+#The first 8 elements store the physical state, and the rest store the rest.
+state(x::DuplicatedStepResult) = @inbounds x.state[SVector(1:8...)]
+shadow_state(x::DuplicatedStepResult) = @inbounds x.state[SVector(9:16...)]
 isredshifted(x::AbstractStepResult) = x.is_redshifted
 isescaped(x::AbstractStepResult) = x.is_escaped
 isterminated(x::AbstractStepResult) = isescaped(x) || isredshifted(x)
