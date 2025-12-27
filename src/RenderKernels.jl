@@ -33,13 +33,15 @@
     metric_tpl = local_camera.inverse_metric_tpl
     initial_state = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
     gstate = initialize_state(initial_state, integrator, metric_tpl)
-    
+    dt_scaler = scaler(integrator)
+    dtc_cache = initialize_cache(gstate, metric_tpl, dt_scaler)
+
     N = max_timesteps(integrator)
 
     redshift_status = false
     @fastmath for t in 1:N
 
-        nextval = geodesic_step(gstate, integrator)
+        nextval = geodesic_step(gstate, integrator, dtc_cache)
 
         if isterminated(nextval)
             redshift_status = isredshifted(nextval)

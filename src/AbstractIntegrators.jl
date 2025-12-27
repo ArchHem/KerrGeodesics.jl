@@ -16,7 +16,7 @@ specific geodesic integration needs in curved spacetime.
 All concrete subtypes `x<:AbstractStateLessCustomIntegrator` MUST implement:
 
 - `max_timesteps(x)::Int` - Maximum number of integration steps before forced termination
-- `geodesic_step(state::SVector{8,T}, x) -> StepResult{T}` - Advances geodesic by one timestep
+- `geodesic_step(state::SVector{8,T}, x, args...) -> StepResult{T}` - Advances geodesic by one timestep
 - 'initialize_state(state::SVector{8},T}, x, inverse_metric; kwargs) -> SVector{N, T} - May involve things like noormalization, scaling raised components, etc.
 
 where `state = [x0, x1, x2, x3, v0, v1, v2, v3]` represents position and lowered four-velocity.
@@ -40,6 +40,7 @@ All `AbstractHeureticIntegrator` subtypes provide:
 - `scaler(x)` - Returns the step scaler
 - `metric(x)` - Returns the spacetime metric
 - `max_timesteps(x)` - Delegates to `max_timesteps(scaler(x))`
+- `geodesic_step(state::SVector{8,T}, x, dtc_cache) -> StepResult{T}` - Advances geodesic by one timestep, using the cache derived from the step scaler.
 """
 abstract type AbstractHeureticIntegrator <: AbstractStateLessCustomIntegrator end
 
@@ -210,7 +211,7 @@ Advances the geodesic state by one RK4 timestep.
 The timestep `dt` and cached quantities are obtained from `get_dt(state, metric, scaler)`.
 Termination conditions are evaluated using the final derivative estimate and cached values.
 """
-function geodesic_step(state, integrator::RK4Heuretic{T}) where T
+function geodesic_step(state, integrator::RK4Heuretic{T}, dtc_cache) where T
     dtcontrol = scaler(integrator)
     lmetric = metric(integrator)
     @fastmath begin
@@ -233,8 +234,8 @@ function geodesic_step(state, integrator::RK4Heuretic{T}) where T
         renorm_3 = 1 / T(3)
         dstate = @. renorm_6 * (dstate_1 + dstate_4) + renorm_3 * (dstate_2 + dstate_3)
         
-        escap = is_escaped(state, dstate, cache, dtcontrol)
-        redshift = is_redshifted(state, dstate, cache, dtcontrol)
+        escap = is_escaped(state, dstate, cache, dtc_cache, dtcontrol)
+        redshift = is_redshifted(state, dstate, cache, dtc_cache, dtcontrol)
         newstate = @. state + dt * dstate
     end
     
@@ -260,7 +261,7 @@ Advances the geodesic state by one RK2 (midpoint method) timestep.
 Uses only two derivative evaluations (at current point and midpoint) for speed.
 Termination conditions use the midpoint derivative `dstate_2` as the best available estimate.
 """
-function geodesic_step(state, integrator::RK2Heuretic{T}) where T
+function geodesic_step(state, integrator::RK2Heuretic{T}, dtc_cache) where T
     dtcontrol = scaler(integrator)
     lmetric = metric(integrator)
     
@@ -275,8 +276,8 @@ function geodesic_step(state, integrator::RK2Heuretic{T}) where T
         
         newstate = @. state + dt * dstate_2
         
-        escap = is_escaped(state, dstate_2, cache, dtcontrol)
-        redshift = is_redshifted(state, dstate_2, cache, dtcontrol)
+        escap = is_escaped(state, dstate_2, cache, dtc_cache, dtcontrol)
+        redshift = is_redshifted(state, dstate_2, cache, dtc_cache, dtcontrol)
     end
     
     return StepResult(newstate, escap, redshift)
@@ -301,7 +302,7 @@ Advances the geodesic state by one Adam-Moluton timestep.
 The timestep `dt` and cached quantities are obtained from `get_dt(state, metric, scaler)`.
 Termination conditions are evaluated using the final derivative estimate and cached values.
 """
-@generated function geodesic_step(state::SVector{8,T}, integrator::AdamMoultonHeuretic{T,U,N}) where {T,U,N}
+@generated function geodesic_step(state::SVector{8,T}, integrator::AdamMoultonHeuretic{T,U,N}, dtc_cache) where {T,U,N}
     quote
         dtcontrol = scaler(integrator)
         lmetric = metric(integrator)
@@ -331,8 +332,8 @@ Termination conditions are evaluated using the final derivative estimate and cac
             final_midpoint = @. (state + newstate) * T(0.5)
             dstate_final = calculate_differential(final_midpoint, lmetric)
             
-            escap = is_escaped(newstate, dstate_final, cache, dtcontrol)
-            redshift = is_redshifted(newstate, dstate_final, cache, dtcontrol)
+            escap = is_escaped(newstate, dstate_final, cache, dtc_cache, dtcontrol)
+            redshift = is_redshifted(newstate, dstate_final, cache, dtc_cache, dtcontrol)
         end
         
         return StepResult(newstate, escap, redshift)
@@ -349,8 +350,8 @@ specific geodesic integration needs in curved spacetime, that make use of cachin
 All concrete subtypes `x<:AbstractStateLessCustomIntegrator` MUST implement:
 
 - `max_timesteps(x)::Int` - Maximum number of integration steps before forced termination
-- `geodesic_step(state::SVector{N,T}, x, current_cache) -> StepResult{T}, cache` - Advances geodesic by one timestep, given a cache.
-- `geodesic_step(state::SVector{N,T}, x, current_cache::Nothing) -> StepResult{T}, cache` - Initial geodesic step.
+- `geodesic_step(state::SVector{N,T}, x, current_cache, args...) -> StepResult{T}, cache` - Advances geodesic by one timestep, given a cache.
+- `geodesic_step(state::SVector{N,T}, x, current_cache::Nothing, args...) -> StepResult{T}, cache` - Initial geodesic step.
 
 where `state = [x0, x1, x2, x3, v0, v1, v2, v3]` represents position and lowered four-velocity.
 

@@ -1,10 +1,11 @@
 """
     All members, x<:AbstractHeureticStepScaler{T} must implement:
     
+    initialize_cache(state, inverse_metric_tpl, x) -> init_cache Init cache MUST be stack allocated and Adapt.jl compatible.
     get_dt(state, input_cache, metric, x) -> (T, cache) where cache is type-stable, non-heap-allocated. Input cache is returned by calculate_differential_and_geom
     get_dt(state, metric, x) -> (T, cache) where cache is type-stable, non-heap-allocated.
-    is_redshifted(state, dstate, cache, x)::Bool
-    is_escaped(state, dstate, cache, x)::Bool
+    is_redshifted(state, dstate, cache, init_cache, x)::Bool
+    is_escaped(state, dstate, cache, init_cache, x)::Bool
     max_timesteps(x)::Int
 """
 
@@ -89,13 +90,23 @@ end
     return (-dt, (r))
 end
 
-@inline function is_redshifted(state, dstate, cache, s::HorizonHeureticScaler{T}) where T
+@inline function is_redshifted(state, dstate, cache, init_cache, s::HorizonHeureticScaler{T}) where T
     #use heuretic of temporal component, assumes that ray was normalized to u0 = 1 initially
-    return dstate[1] > s.redshift_stop
+    u0 = init_cache
+    #technically could shift this around and hope for better GPU ccompulation/use sign
+    return dstate[1] > s.redshift_stop * u0
 end
 
-@inline function is_escaped(state, dstate, cache, s::HorizonHeureticScaler{T}) where T
+@inline function is_escaped(state, dstate, cache, init_cache, s::HorizonHeureticScaler{T}) where T
     r = cache[1]
     return r > s.r_stop
+end
+
+@inline function initialize_cache(state, inverse_metric_tpl, x)
+    #This may recompute things used during ray intilization, but it happens 1x during thread and is acceptable for a universal API
+    _, _, _, _, v0, v1, v2, v3 = state
+    #raised comps
+    w0, w1, w2, w3 = mult_by_metric(inverse_metric_tpl, (v0, v1, v2, v3))
+    return w0
 end
 
