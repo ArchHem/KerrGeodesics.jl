@@ -2,6 +2,7 @@
     All members, x<:AbstractHeureticStepScaler{T} must implement:
     
     get_dt(state, input_cache, metric, x) -> (T, cache) where cache is type-stable, non-heap-allocated. Input cache is returned by calculate_differential_and_geom
+    get_dt(state, metric, x) -> (T, cache) where cache is type-stable, non-heap-allocated.
     is_redshifted(state, dstate, cache, x)::Bool
     is_escaped(state, dstate, cache, x)::Bool
     max_timesteps(x)::Int
@@ -70,6 +71,17 @@ end
 @inline function get_dt(state, input_cache, metric::KerrMetric{T}, s::HorizonHeureticScaler{T}) where T
     r = input_cache
     @fastmath begin
+        diff = r - s.event_horizon
+        dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
+        dt = min(dt_primal, s.max)
+    end
+    return (-dt, (r))
+end
+
+@inline function get_dt(state, metric::KerrMetric{T}, s::HorizonHeureticScaler{T}) where T
+    @inbounds x0, x1, x2, x3 = state[1], state[2], state[3], state[4]
+    @fastmath begin
+        r = sqrt(yield_r2(x0, x1, x2, x3, metric))
         diff = r - s.event_horizon
         dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
         dt = min(dt_primal, s.max)
