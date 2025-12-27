@@ -14,7 +14,7 @@
         indicating an event horizon.
 """
 @kernel unsafe_indices = true function render_kernel!(output::AbstractArray{T},
-    @Const(integrator::AbstractStateLessCustomIntegrator),
+    @Const(integrator::AbstractHeureticIntegrator),
     @Const(batch::SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}), 
     @Const(camerachain::AbstractVector{PinHoleCamera{T}})) where {T, V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
 
@@ -30,16 +30,11 @@
     v0, v1, v2, v3 = @fastmath generate_camera_ray(T(i - T(0.5)) / (V * MicroNWarps * NBlocks), 
         T(j - T(0.5)) / (H * MicroMWarps * MBlocks), 
         local_camera)
-
     metric_tpl = local_camera.inverse_metric_tpl
-    w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
-
-    v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
-
-    local_metric = metric(integrator)  # Changed variable name
+    initial_state = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
+    gstate = initialize_state(initial_state, integrator, metric_tpl)
+    
     N = max_timesteps(integrator)
-
-    gstate = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
 
     redshift_status = false
     @fastmath for t in 1:N
