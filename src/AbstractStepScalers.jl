@@ -104,7 +104,7 @@ end
 
 @inline function initialize_cache(state, inverse_metric_tpl, x)
     #This may recompute things used during ray intilization, but it happens 1x during thread and is acceptable for a universal API
-    v0, v1, v2, v3 = state[1], state[2], state[3], state[4]
+    v0, v1, v2, v3 = state[5], state[6], state[7], state[8]
     #raised comps
     w0, w1, w2, w3 = mult_by_metric(inverse_metric_tpl, (v0, v1, v2, v3))
     return w0
