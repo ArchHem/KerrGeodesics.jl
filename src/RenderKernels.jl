@@ -47,7 +47,7 @@
             redshift_status = isredshifted(nextval)
             break
         end
-        gstate = state(nextval)
+        gstate = full_state(nextval)
     end
     
     ϕ, θ = cast_to_sphere(gstate)

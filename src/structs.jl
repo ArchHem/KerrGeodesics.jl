@@ -30,6 +30,7 @@ end
 
 state_length(x::AbstractStepResult) = length(x.state)
 
+full_state(x::AbstractStepResult) = x.state
 state(x::StepResult) = x.state
 #for duplicated systems, return the first state as the physical truth.
 #The first 8 elements store the physical state, and the rest store the rest.

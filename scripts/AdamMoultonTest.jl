@@ -55,12 +55,14 @@ function run_adam_moulton_convergence_test(di = CalibrationExt.test_states, metr
             integrator = AdamMoultonHeuretic(metric, dtc, n)
 
             gstate = prep_state(local_state, integrator)
-            
+            metric_tpl = KerrGeodesics.yield_inverse_metric(gstate[1], gstate[2], gstate[3], gstate[4], metric)
+            dtc_cache = KerrGeodesics.initialize_cache(gstate, metric_tpl, KerrGeodesics.scaler(integrator))
+
             dt_ref, _ = KerrGeodesics.get_dt(gstate, metric, dtc)
             
             truth_state = solve_implicit_midpoint_precise(gstate, dt_ref, metric, tol=Float32(1e-14))
             
-            nextval = KerrGeodesics.geodesic_step(gstate, integrator)
+            nextval = KerrGeodesics.geodesic_step(gstate, integrator, dtc_cache)
             predicted_state = KerrGeodesics.state(nextval)
 
             diff = norm(predicted_state .- truth_state)

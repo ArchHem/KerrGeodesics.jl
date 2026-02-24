@@ -4,67 +4,54 @@
     integrator::AbstractStateLessCustomIntegrator; norm = T(-1), null = false) where {T}
 
     Debug-oriented function that integrates a single geodesic, and stores its state at every timestep into output_buffer of shape
-    [8, N_timesteps].
+    [N_state, N_timesteps], where N_state is 8 for standard integrators and 16 for SplitHamiltonianHeuretic.
 
     The function can normalize the initial input using the norm and null keyword arguments. 
-    Returns the last index written by the integrator.
+    Returns the last index written and a bool indicating whether the ray was redshifted.
 """
 function integrate_single_geodesic!(output_buffer::AbstractArray{T}, start_state::AbstractVector{T}, 
     integrator::AbstractStateLessCustomIntegrator; norm::T = T(-1), null::Bool = false, do_norm::Bool = false) where {T}
 
     N = max_timesteps(integrator)
     @assert N == size(output_buffer, 2)
+    @assert 8 == size(output_buffer, 1)
 
-    x0, x1, x2, x3, v0, v1, v2, v3 = start_state
+    x0, x1, x2, x3, v0, v1, v2, v3 = start_state[1], start_state[2], start_state[3], start_state[4],
+                                       start_state[5], start_state[6], start_state[7], start_state[8]
 
     local_metric = metric(integrator)
     metric_tpl = yield_inverse_metric(x0, x1, x2, x3, local_metric)
-    #Normalize raised four-veloc's temporal part to 1 (assumed by integrators)
+
     if do_norm
         w0, w1, w2, w3 = mult_by_metric(metric_tpl, (v0, v1, v2, v3))
         v0, v1, v2, v3 = v0/w0, v1/w0, v2/w0, v3/w0
     end
 
-    #AFTER this, norm the ray to be null.
-    v0, v1, v2, v3 = normalize_fourveloc(metric_tpl, v0, v1, v2, v3, norm = norm, null = null)
-    
+    v0, v1, v2, v3 = normalize_fourveloc(metric_tpl, v0, v1, v2, v3; norm = norm, null = null)
 
-    gstate = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
+    base_state = @SVector [x0, x1, x2, x3, v0, v1, v2, v3]
+    gstate = initialize_state(base_state, integrator, metric_tpl)
+    dtc_cache = initialize_cache(gstate, metric_tpl, scaler(integrator))
+
+    phys_indices = SVector(1,2,3,4,5,6,7,8)
 
     last_index = N
     isr = false
     @fastmath for t in 1:N
-        # Store current state
-        output_buffer[1, t] = gstate[1]
-        output_buffer[2, t] = gstate[2]
-        output_buffer[3, t] = gstate[3]
-        output_buffer[4, t] = gstate[4]
-        output_buffer[5, t] = gstate[5]
-        output_buffer[6, t] = gstate[6]
-        output_buffer[7, t] = gstate[7]
-        output_buffer[8, t] = gstate[8]
+        
+        output_buffer[:, t] .= gstate[phys_indices]
+        
 
-        # Take a step using the integrator
-        nextval = geodesic_step(gstate, integrator)
+        nextval = geodesic_step(gstate, integrator, dtc_cache)
 
-        # Check termination
         if isterminated(nextval)
-            # Fill remaining buffer with final state
-            output_buffer[1, t:end] .= gstate[1]
-            output_buffer[2, t:end] .= gstate[2]
-            output_buffer[3, t:end] .= gstate[3]
-            output_buffer[4, t:end] .= gstate[4]
-            output_buffer[5, t:end] .= gstate[5]
-            output_buffer[6, t:end] .= gstate[6]
-            output_buffer[7, t:end] .= gstate[7]
-            output_buffer[8, t:end] .= gstate[8]
+            output_buffer[:, t:end] .= gstate[phys_indices]
             last_index = t
             isr = isredshifted(nextval)
             break
         end
 
-        # Update state
-        gstate = state(nextval)
+        gstate = full_state(nextval)
     end
 
     return last_index, isr

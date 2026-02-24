@@ -161,7 +161,7 @@ end
 end
 
 @inline function cast_to_sphere(state)
-    x0, x1, x2, x3, v0, v1, v2, v3 = state
+    x0, x1, x2, x3, v0, v1, v2, v3 = state[1], state[2], state[3], state[4], state[5], state[6], state[7], state[8] 
     ϕ, θ = cast_to_sphere(x0, x1, x2, x3, v0, v1, v2, v3)
     return ϕ, θ
 end

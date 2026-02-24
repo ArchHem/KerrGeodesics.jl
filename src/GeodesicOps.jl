@@ -446,6 +446,19 @@ end
 end
 
 """
+    calculate_differential(state, metric::KerrMetric{T}) where {T}
+    Convinence wrapper for the EoM RHS for split hamiltonians
+"""
+@inline function calculate_differential(x, y, metric::KerrMetric{T}) where {T}
+    x0, x1, x2, x3 = x
+    v0, v1, v2, v3 = y
+    dstate = calculate_differential(x0, x1, x2, x3, v0, v1, v2, v3, metric)
+    dx = dstate[1], dstate[2], dstate[3], dstate[4]
+    dy = dstate[5], dstate[6], dstate[7], dstate[8]
+    return (dx, dy)
+end
+
+"""
     calculate_differential_and_geom(state, metric::KerrMetric{T}) where {T}
     Convinence wrapper for the EoM RHS for tuples.
 """
@@ -453,6 +466,19 @@ end
     x0, x1, x2, x3, v0, v1, v2, v3 = state
     dstate, cache = calculate_differential_and_geom(x0, x1, x2, x3, v0, v1, v2, v3, metric)
     return (dstate, cache)
+end
+
+"""
+    calculate_differential_and_geom(x, y, metric::KerrMetric{T}) where {T}
+    Convinence wrapper for the EoM RHS for split hamiltonians
+"""
+@inline function calculate_differential_and_geom(x, y, metric::KerrMetric{T}) where {T}
+    x0, x1, x2, x3 = x
+    v0, v1, v2, v3 = y
+    dstate, cache = calculate_differential_and_geom(x0, x1, x2, x3, v0, v1, v2, v3, metric)
+    dx = dstate[1], dstate[2], dstate[3], dstate[4]
+    dy = dstate[5], dstate[6], dstate[7], dstate[8]
+    return ((dx, dy), cache)
 end
 
 """

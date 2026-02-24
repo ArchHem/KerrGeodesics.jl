@@ -19,5 +19,5 @@ include("./Utils.jl")
 export KerrMetric, HorizonHeureticScaler, PinHoleCamera, 
     SubStruct, propegate_camera_chain, 
     render_frames, write_video, integrate_single_geodesic!, NearestInterpolant, BiLinearInterpolant,
-    RK4Heuretic, RK2Heuretic, AdamMoultonHeuretic
+    RK4Heuretic, RK2Heuretic, AdamMoultonHeuretic, SplitHamiltonianHeuretic
 end
