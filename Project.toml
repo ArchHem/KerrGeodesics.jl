@@ -13,15 +13,27 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 VideoIO = "d6d074c3-1acf-5d4c-9a43-ef38773959a2"
 
+[weakdeps]
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+NonlinearSolve = "8913a72c-1f9b-4ce2-8d82-65094dcecaec"
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+
+[extensions]
+CalibrationExt = ["GLMakie", "NonlinearSolve", "Interpolations", "BenchmarkTools"]
+
 [compat]
 BenchmarkTools = "1.6.3"
+GLMakie = "0.13.8"
+Interpolations = "0.16.2"
+NonlinearSolve = "4.12.0"
 julia = "1.10"
 
 [extras]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 
 [targets]
 test = ["Test", "Enzyme", "Random", "BenchmarkTools"]

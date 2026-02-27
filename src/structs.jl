@@ -10,46 +10,32 @@ struct KerrMetric{T}
     a::T
 end
 
-#This compues specialized, heuretical timesteps in the Kerr spacetime.
+abstract type AbstractStepResult{T} end
 
-#Use kerr's papers on EH in KS coordinates;
-
-#r2 - 2mr + a^2 = 0 for the EH.
-
-#The outer horizon has r = sqrt(m^2-a^2) + m
-
-#i.e. r^2 = 2*m^2 - a^2 + 2 m * sqrt(m^2 - a^2)
-
-
-
-struct TimeStepScaler{T}
-    max::T
-    event_horizon::T
-    a0::T
-    a1::T
-    a2::T
-    redshift_stop::T
-    r_stop::T
-    maxtimesteps::Int
+struct StepResult{T} <: AbstractStepResult{T}
+    state::SVector{8, T}
+    is_escaped::Bool
+    is_redshifted::Bool
 end
 
-function TimeStepScaler(max::T, metric::KerrMetric{T}, a0::T, a1::T, a2::T, redshift_stop::T, r_stop::T, maxtimesteps::Int) where T
-    event_horizon = sqrt(metric.M^2-metric.a^2) + metric.M
-    return TimeStepScaler{T}(max, event_horizon, a0, a1, a2, redshift_stop, r_stop, maxtimesteps)
+#@inline function StepResult(state::SVector{8, T}, is_escaped::Bool, is_redshifted::Bool) where T
+#    return StepResult{T}(state, is_escaped, is_redshifted)
+#end
+
+struct DuplicatedStepResult{T} <: AbstractStepResult{T}
+    state::SVector{16, T}
+    is_escaped::Bool
+    is_redshifted::Bool
 end
 
-@inline function get_dt(r::T, s::TimeStepScaler{T}) where T
+state_length(x::AbstractStepResult) = length(x.state)
 
-    diff = r - s.event_horizon
-    dt_primal = s.a0 + s.a1 * (diff) + s.a2 * diff * diff
-    dt = min(dt_primal, s.max)
-    return dt
-end
-
-struct SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}
-
-end
-
-function SubStruct(V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks)
-    return SubStruct{V, H, MicroNWarps, MicroMWarps, NBlocks, MBlocks}()
-end
+full_state(x::AbstractStepResult) = x.state
+state(x::StepResult) = x.state
+#for duplicated systems, return the first state as the physical truth.
+#The first 8 elements store the physical state, and the rest store the rest.
+state(x::DuplicatedStepResult) = @inbounds x.state[SVector(1:8...)]
+shadow_state(x::DuplicatedStepResult) = @inbounds x.state[SVector(9:16...)]
+isredshifted(x::AbstractStepResult) = x.is_redshifted
+isescaped(x::AbstractStepResult) = x.is_escaped
+isterminated(x::AbstractStepResult) = isescaped(x) || isredshifted(x)
